@@ -517,8 +517,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       status === "Validated"
         ? validatePayrunAction(id)
         : status === "Paid"
-        ? markPayrunPaidAction(id)
-        : Promise.resolve({ success: true });
+          ? markPayrunPaidAction(id)
+          : Promise.resolve({ success: true });
 
     action
       .then(() => refreshData())
