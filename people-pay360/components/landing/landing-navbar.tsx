@@ -28,6 +28,7 @@ export function LandingNavbar() {
       setScrolled(window.scrollY > 20);
     };
     window.addEventListener("scroll", handleScroll);
+    setIsDarkMode(document.documentElement.classList.contains("dark"));
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -75,30 +76,29 @@ export function LandingNavbar() {
   ];
 
   return (
-    <header className="fixed top-4 sm:top-5 left-0 right-0 z-50 flex flex-col items-center px-3 sm:px-4 pointer-events-none">
-      {/* Floating Capsule Bar */}
-      <div
-        className={`pointer-events-auto w-full max-w-4xl flex items-center justify-between gap-2 sm:gap-4 p-1.5 sm:p-2 pl-2 sm:pl-2.5 pr-2 sm:pr-2.5 rounded-full border border-border/90 bg-card/95 backdrop-blur-xl shadow-lg transition-all duration-300 ${
-          scrolled
-            ? "shadow-xl shadow-black/10 dark:shadow-black/40 border-primary/30 back backdrop-blur-xs backdrop-contrast-120"
-            : "shadow-md shadow-black/5 backdrop-blur-xs"
-        }`}
-      >
-        {/* Left Side: Circular Logo Mark */}
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-200 border-b ${
+        scrolled
+          ? "bg-background/95 backdrop-blur-md border-border/80 shadow-xs"
+          : "bg-background/80 backdrop-blur-md border-border/40"
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-18 flex items-center justify-between">
+        {/* Far Left: Circular Logo Mark + Brand Name */}
         <Link href="/" className="flex items-center gap-2.5 group shrink-0">
           <div className="size-9 sm:size-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-black text-sm sm:text-base shadow-xs group-hover:scale-105 transition-transform">
             P
           </div>
-          <span className="hidden lg:inline-block font-bold text-xs tracking-tight text-foreground pr-1">
+          <span className="font-bold text-sm sm:text-base tracking-tight text-foreground">
             PeoplePay<span className="text-primary font-black">360</span>
           </span>
         </Link>
 
-        {/* Center: Horizontal Navigation Links */}
+        {/* Center: Horizontal Navigation Links naturally placed across navbar */}
         <nav className="hidden md:flex items-center gap-1 sm:gap-1.5">
           <a
             href="#platform"
-            className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
           >
             Platform
           </a>
@@ -111,7 +111,7 @@ export function LandingNavbar() {
           >
             <button
               onClick={() => setModulesOpen(!modulesOpen)}
-              className="flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
+              className="flex items-center gap-1 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
             >
               <span>Modules</span>
               <ChevronDown
@@ -122,8 +122,8 @@ export function LandingNavbar() {
             </button>
 
             {modulesOpen && (
-              <div className="absolute top-full left-1/2 -translate-x-1/2 w-72 pt-3 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
-                <div className="rounded-3xl border border-border bg-card p-3 shadow-2xl space-y-1">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 w-72 pt-2 z-50 animate-in fade-in slide-in-from-top-1 duration-150">
+                <div className="rounded-2xl border border-border bg-card p-3 shadow-xl space-y-1">
                   <div className="px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground font-mono">
                     Core Platform Modules
                   </div>
@@ -133,9 +133,9 @@ export function LandingNavbar() {
                       <Link
                         key={m.title}
                         href={m.href}
-                        className="flex items-center gap-3 p-2 rounded-2xl hover:bg-muted/70 transition-colors group"
+                        className="flex items-center gap-3 p-2 rounded-xl hover:bg-muted/70 transition-colors group"
                       >
-                        <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
+                        <div className="p-2 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors shrink-0">
                           <Icon className="size-4" />
                         </div>
                         <div>
@@ -156,40 +156,36 @@ export function LandingNavbar() {
 
           <a
             href="#comparison"
-            className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
           >
             Comparison
           </a>
           <a
             href="#roi"
-            className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
           >
             ROI
           </a>
           <a
             href="#testimonials"
-            className="px-3.5 py-1.5 rounded-full text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
+            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
           >
             Customers
           </a>
         </nav>
 
-        {/* Right Side: Theme Toggle + Pill CTA Button */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Far Right: Theme Toggle + CTA Button */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={toggleTheme}
-            className="size-8 sm:size-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
+            className="size-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
             title="Toggle theme"
           >
-            {isDarkMode ? (
-              <Sun className="size-3.5" />
-            ) : (
-              <Moon className="size-3.5" />
-            )}
+            {isDarkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </button>
 
           <Link href="/dashboard">
-            <button className="h-9 sm:h-10 px-4 sm:px-6 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs tracking-wide shadow-sm flex items-center gap-1.5 transition-all duration-150 active:scale-95 whitespace-nowrap">
+            <button className="h-9 sm:h-10 px-4 sm:px-5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs tracking-wide shadow-sm flex items-center gap-1.5 transition-all duration-150 active:scale-95 whitespace-nowrap">
               <span>Launch Live App</span>
               <ArrowRight className="size-3.5" />
             </button>
@@ -198,89 +194,86 @@ export function LandingNavbar() {
           {/* Mobile hamburger button */}
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden size-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70"
+            className="md:hidden size-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
+            aria-label="Toggle menu"
           >
-            {mobileOpen ? (
-              <X className="size-4" />
-            ) : (
-              <Menu className="size-4" />
-            )}
+            {mobileOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
         </div>
       </div>
 
-      {/* Mobile Drawer (Nested under capsule) */}
+      {/* Mobile Drawer (Clean full-width accordion under header) */}
       {mobileOpen && (
-        <div className="pointer-events-auto w-full max-w-sm mt-2 p-4 rounded-3xl border border-border/90 bg-card/98 backdrop-blur-2xl shadow-2xl space-y-3 md:hidden animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="md:hidden border-t border-border/60 bg-card/98 backdrop-blur-2xl px-4 py-4 space-y-4 animate-in fade-in slide-in-from-top-1 duration-150">
           <div className="flex flex-col gap-1">
             <Link
               href="/dashboard"
               onClick={() => setMobileOpen(false)}
-              className="flex items-center justify-between p-2.5 rounded-2xl text-xs font-bold text-primary bg-primary/10"
+              className="flex items-center justify-between p-3 rounded-xl text-xs font-bold text-primary bg-primary/10 hover:bg-primary/15 transition-colors"
             >
               <span>Launch Dashboard</span>
-              <ArrowRight className="size-3.5" />
+              <ArrowRight className="size-4" />
             </Link>
             <a
               href="#platform"
               onClick={() => setMobileOpen(false)}
-              className="p-2.5 rounded-2xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted"
+              className="p-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
             >
               Platform
             </a>
             <a
               href="#comparison"
               onClick={() => setMobileOpen(false)}
-              className="p-2.5 rounded-2xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted"
+              className="p-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
             >
-              Why PeoplePay360
+              Comparison
             </a>
             <a
               href="#roi"
               onClick={() => setMobileOpen(false)}
-              className="p-2.5 rounded-2xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted"
+              className="p-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
             >
-              ROI Calculator
+              ROI
             </a>
             <a
               href="#testimonials"
               onClick={() => setMobileOpen(false)}
-              className="p-2.5 rounded-2xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted"
+              className="p-2.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
             >
-              Customer Stories
+              Customers
             </a>
           </div>
 
-          <div className="pt-2 border-t border-border space-y-1">
-            <div className="text-[10px] font-bold text-muted-foreground uppercase font-mono px-2">
+          <div className="pt-3 border-t border-border/60 space-y-2">
+            <div className="text-[10px] font-bold text-muted-foreground uppercase font-mono px-1 tracking-wider">
               Direct Module Links
             </div>
-            <div className="grid grid-cols-2 gap-1 text-[11px]">
+            <div className="grid grid-cols-2 gap-1.5 text-xs">
               <Link
                 href="/employees"
                 onClick={() => setMobileOpen(false)}
-                className="p-2 rounded-xl hover:bg-muted"
+                className="p-2.5 rounded-xl hover:bg-muted/70 transition-colors text-muted-foreground hover:text-foreground font-medium"
               >
                 Employees
               </Link>
               <Link
                 href="/contracts"
                 onClick={() => setMobileOpen(false)}
-                className="p-2 rounded-xl hover:bg-muted"
+                className="p-2.5 rounded-xl hover:bg-muted/70 transition-colors text-muted-foreground hover:text-foreground font-medium"
               >
                 Contracts
               </Link>
               <Link
                 href="/attendance"
                 onClick={() => setMobileOpen(false)}
-                className="p-2 rounded-xl hover:bg-muted"
+                className="p-2.5 rounded-xl hover:bg-muted/70 transition-colors text-muted-foreground hover:text-foreground font-medium"
               >
                 Attendance
               </Link>
               <Link
                 href="/payroll/payruns"
                 onClick={() => setMobileOpen(false)}
-                className="p-2 rounded-xl hover:bg-muted"
+                className="p-2.5 rounded-xl hover:bg-muted/70 transition-colors text-muted-foreground hover:text-foreground font-medium"
               >
                 Payruns
               </Link>
