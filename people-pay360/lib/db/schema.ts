@@ -155,8 +155,8 @@ export const employees = pgTable("employees", {
   workingScheduleId: integer("working_schedule_id").references(
     () => workingSchedules.id,
   ),
-  bankAccountNumber: varchar("bank_account_number", { length: 30 }).notNull(),
-  bankName: varchar("bank_name", { length: 50 }).notNull(),
+  bankAccountNumber: varchar("bank_account_number", { length: 30 }),
+  bankName: varchar("bank_name", { length: 50 }),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

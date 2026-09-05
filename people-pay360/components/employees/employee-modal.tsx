@@ -32,44 +32,49 @@ interface EmployeeModalProps {
   isCreate?: boolean;
 }
 
+const defaultEmployeeForm: Partial<Employee> = {
+  name: "",
+  workEmail: "",
+  phone: "",
+  jobPosition: "",
+  department: "Engineering",
+  company: "PeoplePay360 Technologies Pvt Ltd",
+  workLocation: "Mumbai",
+  status: "Active",
+  scheduleId: "SCH-1",
+  bankDetails: {
+    bankName: "HDFC Bank",
+    accountNumber: "",
+    ifscCode: "HDFC0000123",
+  },
+};
+
 export function EmployeeModal({ employee, open, onOpenChange, isCreate = false }: EmployeeModalProps) {
   const { updateEmployee, addEmployee, getEmployeeSmartCounts } = useAppStore();
   const { toast } = useToast();
 
   const [isEditing, setIsEditing] = useState(isCreate);
-  const [formData, setFormData] = useState<Partial<Employee>>(
-    employee || {
-      name: "",
-      workEmail: "",
-      phone: "",
-      jobPosition: "",
-      department: "Engineering",
-      company: "PeoplePay360 Technologies Pvt Ltd",
-      workLocation: "Mumbai",
-      status: "Active",
-      scheduleId: "SCH-1",
-      bankDetails: {
-        bankName: "HDFC Bank",
-        accountNumber: "",
-        ifscCode: "HDFC0000123",
-      },
-    }
-  );
+  const [formData, setFormData] = useState<Partial<Employee>>(defaultEmployeeForm);
 
   React.useEffect(() => {
-    if (employee) {
-      setFormData(employee);
-      setIsEditing(isCreate);
+    if (open) {
+      if (isCreate) {
+        setIsEditing(true);
+        setFormData(defaultEmployeeForm);
+      } else if (employee) {
+        setFormData(employee);
+        setIsEditing(false);
+      }
     }
-  }, [employee, isCreate]);
+  }, [open, employee, isCreate]);
 
   if (!open) return null;
 
   const smartCounts = employee ? getEmployeeSmartCounts(employee.id) : { contractsCount: 0, attendanceCount: 0, timeOffCount: 0 };
 
   const handleSave = () => {
-    if (!formData.name || !formData.workEmail) {
-      toast({ title: "Validation Error", description: "Name and work email are required.", type: "error" });
+    if (!formData.name?.trim() || !formData.workEmail?.trim()) {
+      toast({ title: "Validation Error", description: "Full Name and Work Email are required.", type: "error" });
       return;
     }
 
@@ -115,7 +120,7 @@ export function EmployeeModal({ employee, open, onOpenChange, isCreate = false }
             )}
             {isEditing && (
               <Button size="sm" onClick={handleSave} className="bg-primary text-primary-foreground">
-                Save
+                {isCreate ? "Create Employee" : "Save"}
               </Button>
             )}
           </div>
@@ -308,6 +313,22 @@ export function EmployeeModal({ employee, open, onOpenChange, isCreate = false }
               </div>
             </TabsContent>
           </Tabs>
+        </div>
+
+        {/* Modal Footer Actions */}
+        <div className="flex items-center justify-end gap-3 pt-4 mt-6 border-t border-border">
+          <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          {isEditing ? (
+            <Button size="sm" onClick={handleSave} className="bg-primary text-primary-foreground">
+              {isCreate ? "Create Employee Record" : "Save Changes"}
+            </Button>
+          ) : (
+            <Button size="sm" onClick={() => setIsEditing(true)} className="bg-primary text-primary-foreground">
+              Edit Profile
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
