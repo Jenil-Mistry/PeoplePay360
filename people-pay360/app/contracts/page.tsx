@@ -7,7 +7,6 @@ import {
   Search,
   Plus,
   Calendar,
-  DollarSign,
   AlertCircle,
   CheckCircle2,
   Clock,

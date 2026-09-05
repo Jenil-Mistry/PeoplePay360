@@ -7,7 +7,6 @@ import {
   Search,
   Printer,
   Calendar,
-  DollarSign,
   Download,
   Building,
   User,

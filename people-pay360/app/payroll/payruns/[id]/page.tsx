@@ -14,7 +14,7 @@ import {
   Users,
   Building,
   Calendar,
-  DollarSign,
+  IndianRupee,
   FileText,
   ExternalLink,
 } from "lucide-react";
@@ -139,7 +139,7 @@ export default function PayrunProcessingPage({ params }: { params: Promise<{ id:
               onClick={handleMarkPaid}
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
             >
-              <DollarSign className="size-3.5" />
+              <IndianRupee className="size-3.5" />
               MARK PAID
             </Button>
           )}

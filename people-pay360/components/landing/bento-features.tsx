@@ -57,11 +57,11 @@ export function BentoFeatures() {
           {/* Sequence Visualizer */}
           <div className="p-4 rounded-2xl bg-muted/40 border border-border/80 space-y-2.5">
             {[
-              { seq: 1, name: "Basic Salary", code: "BASIC", type: "Base", val: "$42,500.00" },
-              { seq: 2, name: "House Rent Allowance", code: "HRA", type: "Allowance (50%)", val: "+$21,250.00" },
-              { seq: 3, name: "Standard Allowance", code: "STD", type: "Allowance", val: "+$10,000.00" },
-              { seq: 4, name: "Provident Fund", code: "PF", type: "Deduction", val: "-$3,000.00" },
-              { seq: 5, name: "Net Salary Output", code: "NET", type: "Final Remuneration", val: "$68,750.00" },
+              { seq: 1, name: "Basic Salary", code: "BASIC", type: "Base", val: "₹42,500.00" },
+              { seq: 2, name: "House Rent Allowance", code: "HRA", type: "Allowance (50%)", val: "+₹21,250.00" },
+              { seq: 3, name: "Standard Allowance", code: "STD", type: "Allowance", val: "+₹10,000.00" },
+              { seq: 4, name: "Provident Fund", code: "PF", type: "Deduction", val: "-₹3,000.00" },
+              { seq: 5, name: "Net Salary Output", code: "NET", type: "Final Remuneration", val: "₹68,750.00" },
             ].map((rule) => (
               <div
                 key={rule.seq}

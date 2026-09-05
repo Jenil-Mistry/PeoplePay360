@@ -14,7 +14,6 @@ import {
   Users,
   Clock,
   ArrowLeft,
-  DollarSign,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { Payrun, PayrunStatus } from "@/lib/types";

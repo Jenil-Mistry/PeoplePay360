@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import {
-  DollarSign,
+  IndianRupee,
   FileCheck,
   TrendingUp,
   CalendarCheck,
@@ -161,7 +161,7 @@ export default function DashboardPage() {
         <Card className="hover:border-primary/40 transition-colors">
           <CardHeader className="flex flex-row items-center justify-between pb-2 p-4">
             <CardTitle className="text-xs font-medium text-muted-foreground">Total Net Salary Paid</CardTitle>
-            <DollarSign className="size-4 text-emerald-500" />
+            <IndianRupee className="size-4 text-emerald-500" />
           </CardHeader>
           <CardContent className="p-4 pt-0">
             <div className="text-xl font-bold tracking-tight text-foreground font-mono">

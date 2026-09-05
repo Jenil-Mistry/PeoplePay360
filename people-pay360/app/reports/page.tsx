@@ -7,7 +7,6 @@ import {
   FileSpreadsheet,
   Printer,
   Calendar,
-  DollarSign,
   Users,
   Building,
   CheckCircle2,

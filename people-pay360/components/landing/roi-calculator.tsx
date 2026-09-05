@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { TrendingUp, Clock, ShieldCheck, ArrowRight, DollarSign, Sparkles } from "lucide-react";
+import { TrendingUp, Clock, ShieldCheck, ArrowRight, IndianRupee, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function RoiCalculator() {
@@ -10,7 +10,7 @@ export function RoiCalculator() {
 
   // Dynamic calculations based on employee count
   const hoursSavedPerMonth = Math.round(employeeCount * 0.65);
-  const annualDollarSavings = Math.round(hoursSavedPerMonth * 45 * 12);
+  const annualRupeeSavings = Math.round(hoursSavedPerMonth * 650 * 12);
   const turnaroundDaysBefore = employeeCount > 100 ? 4 : employeeCount > 30 ? 3 : 2;
 
   return (
@@ -74,11 +74,11 @@ export function RoiCalculator() {
 
             <div className="p-5 rounded-2xl bg-primary/10 border border-primary/20 space-y-2">
               <div className="flex items-center gap-2 text-xs font-semibold text-primary">
-                <DollarSign className="size-4" />
+                <IndianRupee className="size-4" />
                 <span>Annual Cost Equivalent</span>
               </div>
               <div className="text-3xl font-black font-mono text-primary">
-                ${annualDollarSavings.toLocaleString()}
+                ₹{annualRupeeSavings.toLocaleString("en-IN")}
               </div>
               <p className="text-[11px] text-muted-foreground">Reclaimed in productive HRBP bandwidth</p>
             </div>

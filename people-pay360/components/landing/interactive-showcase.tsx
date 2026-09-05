@@ -100,7 +100,7 @@ export function InteractiveShowcase() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 rounded-2xl bg-muted/30 border border-border space-y-2">
                 <span className="text-xs font-semibold text-muted-foreground">Total Batch Net Payout</span>
-                <div className="text-2xl font-bold font-mono text-foreground">$626,500.00</div>
+                <div className="text-2xl font-bold font-mono text-foreground">₹6,42,500.00</div>
                 <span className="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
                   <CheckCircle2 className="size-3.5" /> 8 Employee Payslips Computed
                 </span>
@@ -142,25 +142,25 @@ export function InteractiveShowcase() {
                     <span className="font-bold text-foreground">Basic Salary</span>
                     <span className="ml-2 font-mono text-muted-foreground">Rule: BASIC</span>
                   </div>
-                  <span className="font-mono font-bold">$42,500.00</span>
+                  <span className="font-mono font-bold">₹42,500.00</span>
                 </div>
                 <div className="p-3 flex items-center justify-between">
                   <div>
                     <span className="font-bold text-foreground">House Rent Allowance (50% Basic)</span>
                     <span className="ml-2 font-mono text-muted-foreground">Rule: HRA</span>
                   </div>
-                  <span className="font-mono font-bold text-emerald-600">+$21,250.00</span>
+                  <span className="font-mono font-bold text-emerald-600">+₹21,250.00</span>
                 </div>
                 <div className="p-3 flex items-center justify-between">
                   <div>
                     <span className="font-bold text-foreground">Provident Fund Deduction</span>
                     <span className="ml-2 font-mono text-muted-foreground">Rule: PF</span>
                   </div>
-                  <span className="font-mono font-bold text-rose-500">-$3,000.00</span>
+                  <span className="font-mono font-bold text-rose-500">-₹3,000.00</span>
                 </div>
                 <div className="p-3 bg-primary/10 flex items-center justify-between font-bold">
                   <span className="text-foreground">Net Salary To Disburse</span>
-                  <span className="font-mono text-primary text-sm">$68,750.00</span>
+                  <span className="font-mono text-primary text-sm">₹68,750.00</span>
                 </div>
               </div>
             </div>
@@ -202,15 +202,15 @@ export function InteractiveShowcase() {
                 <div className="space-y-2 text-xs pt-2 border-t border-border">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Base Wage:</span>
-                    <span className="font-mono font-bold">$85,000 / mo</span>
+                    <span className="font-mono font-bold">₹85,000 / mo</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Allowances:</span>
-                    <span className="font-mono text-emerald-600">HRA (50%), Conveyance ($800)</span>
+                    <span className="font-mono text-emerald-600">HRA (50%), Conveyance (₹1,500)</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Deductions:</span>
-                    <span className="font-mono text-rose-500">PF ($1,800), Professional Tax ($200)</span>
+                    <span className="font-mono text-rose-500">PF (₹3,000), Professional Tax (₹2,000)</span>
                   </div>
                 </div>
               </div>
@@ -226,7 +226,7 @@ export function InteractiveShowcase() {
                 <div className="space-y-2 text-xs pt-2 border-t border-border">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Base Wage:</span>
-                    <span className="font-mono font-bold">$160,000 / mo</span>
+                    <span className="font-mono font-bold">₹1,40,000 / mo</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Allowances:</span>

@@ -7,7 +7,6 @@ import {
   Plus,
   Code,
   Percent,
-  DollarSign,
   Calculator,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
