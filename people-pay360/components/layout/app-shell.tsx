@@ -22,17 +22,18 @@ import {
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAppStore } from "@/lib/store";
+import { useAppStore, AVAILABLE_USERS } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { payruns } = useAppStore();
+  const { payruns, currentUser, setCurrentUser } = useAppStore();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [timeOffOpen, setTimeOffOpen] = useState(false);
   const [payrollOpen, setPayrollOpen] = useState(false);
   const [alertsOpen, setAlertsOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   // Auto-expand submenus if current path matches
@@ -59,32 +60,42 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <main className="min-h-screen w-full bg-background text-foreground">{children}</main>;
   }
 
-  const navItems = [
+  const isEmployee = currentUser.role === "EMPLOYEE";
+  const canAccessPayroll = currentUser.role === "PAYROLL_USER" || currentUser.role === "PAYROLL_MANAGER" || currentUser.role === "ADMIN";
+  const canAccessFullPayroll = currentUser.role === "PAYROLL_MANAGER" || currentUser.role === "ADMIN";
+
+  const allNavItems = [
     {
       label: "Dashboard",
       href: "/dashboard",
       icon: LayoutDashboard,
       active: pathname === "/dashboard",
+      show: true,
     },
     {
       label: "Employees",
       href: "/employees",
       icon: Users,
       active: pathname.startsWith("/employees"),
+      show: !isEmployee,
     },
     {
       label: "Contracts",
       href: "/contracts",
       icon: FileText,
       active: pathname.startsWith("/contracts"),
+      show: !isEmployee,
     },
     {
       label: "Attendance",
       href: "/attendance",
       icon: Clock,
       active: pathname.startsWith("/attendance"),
+      show: true,
     },
   ];
+
+  const navItems = allNavItems.filter((i) => i.show);
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col antialiased">
@@ -178,15 +189,67 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {isDarkMode ? <Sun className="size-4 text-amber-400" /> : <Moon className="size-4" />}
           </button>
 
-          {/* User Profile Badge */}
-          <div className="flex items-center gap-2 pl-2 border-l border-border">
-            <div className="size-7 rounded-full bg-indigo-100 dark:bg-indigo-950/80 text-primary font-bold text-xs flex items-center justify-center">
-              AM
-            </div>
-            <div className="hidden xl:block text-left text-xs leading-tight">
-              <p className="font-semibold text-foreground">Aarav Mehta</p>
-              <p className="text-[10px] text-muted-foreground">HR Payroll Manager</p>
-            </div>
+          {/* Interactive Role & User Switcher (Spec Section 3) */}
+          <div className="relative">
+            <button
+              onClick={() => setUserMenuOpen(!userMenuOpen)}
+              className="flex items-center gap-2 pl-2 border-l border-border hover:opacity-80 transition-opacity text-left cursor-pointer"
+              title="Switch Active Role / User (PDF Section 3)"
+            >
+              <div className="size-7 rounded-full bg-primary/15 text-primary font-bold text-xs flex items-center justify-center shrink-0">
+                {currentUser.avatarInitials}
+              </div>
+              <div className="hidden xl:block text-left text-xs leading-tight">
+                <div className="flex items-center gap-1.5">
+                  <p className="font-semibold text-foreground">{currentUser.name}</p>
+                  <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.2 rounded bg-primary/10 text-primary border border-primary/20">
+                    {currentUser.role.replace("_", " ")}
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground">{currentUser.jobPosition}</p>
+              </div>
+              <ChevronDown className="size-3 text-muted-foreground hidden xl:block" />
+            </button>
+
+            {userMenuOpen && (
+              <div className="absolute right-0 mt-2 w-72 rounded-xl border border-border bg-card p-2 shadow-2xl z-50 animate-in fade-in zoom-in-95 text-xs">
+                <div className="px-3 py-2 border-b border-border mb-1">
+                  <p className="font-bold text-foreground">Role-Based Access Control</p>
+                  <p className="text-[10px] text-muted-foreground">Select an active user to simulate role permissions (PDF Section 3):</p>
+                </div>
+                <div className="space-y-1">
+                  {AVAILABLE_USERS.map((u) => {
+                    const isSelected = u.id === currentUser.id;
+                    return (
+                      <button
+                        key={u.id}
+                        onClick={() => {
+                          setCurrentUser(u);
+                          setUserMenuOpen(false);
+                        }}
+                        className={cn(
+                          "w-full flex items-center justify-between p-2 rounded-lg text-left transition-colors cursor-pointer",
+                          isSelected ? "bg-primary/10 text-primary font-bold" : "hover:bg-muted text-foreground"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="size-6 rounded-full bg-muted font-bold text-[10px] flex items-center justify-center shrink-0">
+                            {u.avatarInitials}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-xs leading-tight">{u.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{u.jobPosition}</p>
+                          </div>
+                        </div>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground uppercase">
+                          {u.role.replace("_", " ")}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -252,114 +315,126 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   >
                     Requests
                   </Link>
-                  <Link
-                    href="/time-off/allocations"
-                    className={cn(
-                      "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
-                      pathname === "/time-off/allocations"
-                        ? "bg-primary/10 text-primary font-semibold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                    )}
-                  >
-                    Allocations
-                  </Link>
-                  <Link
-                    href="/time-off/types"
-                    className={cn(
-                      "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
-                      pathname === "/time-off/types"
-                        ? "bg-primary/10 text-primary font-semibold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                    )}
-                  >
-                    Time Off Types
-                  </Link>
+                  {!isEmployee && (
+                    <>
+                      <Link
+                        href="/time-off/allocations"
+                        className={cn(
+                          "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
+                          pathname === "/time-off/allocations"
+                            ? "bg-primary/10 text-primary font-semibold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                        )}
+                      >
+                        Allocations
+                      </Link>
+                      <Link
+                        href="/time-off/types"
+                        className={cn(
+                          "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
+                          pathname === "/time-off/types"
+                            ? "bg-primary/10 text-primary font-semibold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                        )}
+                      >
+                        Time Off Types
+                      </Link>
+                    </>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Payroll Accordion */}
-            <div className="pt-1">
-              <button
-                onClick={() => setPayrollOpen(!payrollOpen)}
+            {/* Payroll Accordion (Only for Payroll Users, Payroll Managers, and Admins) */}
+            {canAccessPayroll && (
+              <div className="pt-1">
+                <button
+                  onClick={() => setPayrollOpen(!payrollOpen)}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
+                    pathname.startsWith("/payroll") && "text-foreground font-semibold"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <Banknote className="size-4 shrink-0" />
+                    {sidebarOpen && <span>Payroll</span>}
+                  </div>
+                  {sidebarOpen && (
+                    <ChevronDown className={cn("size-3.5 transition-transform", payrollOpen && "rotate-180")} />
+                  )}
+                </button>
+
+                {payrollOpen && sidebarOpen && (
+                  <div className="pl-9 pr-2 py-1 space-y-1">
+                    <Link
+                      href="/payroll/payruns"
+                      className={cn(
+                        "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
+                        pathname.startsWith("/payroll/payruns")
+                          ? "bg-primary/10 text-primary font-semibold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                      )}
+                    >
+                      Payruns
+                    </Link>
+                    <Link
+                      href="/payroll/payslips"
+                      className={cn(
+                        "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
+                        pathname === "/payroll/payslips"
+                          ? "bg-primary/10 text-primary font-semibold"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                      )}
+                    >
+                      Payslips
+                    </Link>
+                    {canAccessFullPayroll && (
+                      <>
+                        <Link
+                          href="/payroll/structures"
+                          className={cn(
+                            "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
+                            pathname === "/payroll/structures"
+                              ? "bg-primary/10 text-primary font-semibold"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                          )}
+                        >
+                          Salary Structures
+                        </Link>
+                        <Link
+                          href="/payroll/rules"
+                          className={cn(
+                            "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
+                            pathname === "/payroll/rules"
+                              ? "bg-primary/10 text-primary font-semibold"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                          )}
+                        >
+                          Salary Rules
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Reports (Payroll Managers and Admins only) */}
+            {canAccessFullPayroll && (
+              <Link
+                href="/reports"
                 className={cn(
-                  "w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
-                  pathname.startsWith("/payroll") && "text-foreground font-semibold"
+                  "flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors",
+                  pathname === "/reports"
+                    ? "bg-primary text-primary-foreground font-semibold shadow-xs"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
+                title="Reports & Analytics"
               >
-                <div className="flex items-center gap-3">
-                  <Banknote className="size-4 shrink-0" />
-                  {sidebarOpen && <span>Payroll</span>}
-                </div>
-                {sidebarOpen && (
-                  <ChevronDown className={cn("size-3.5 transition-transform", payrollOpen && "rotate-180")} />
-                )}
-              </button>
-
-              {payrollOpen && sidebarOpen && (
-                <div className="pl-9 pr-2 py-1 space-y-1">
-                  <Link
-                    href="/payroll/payruns"
-                    className={cn(
-                      "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
-                      pathname.startsWith("/payroll/payruns")
-                        ? "bg-primary/10 text-primary font-semibold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                    )}
-                  >
-                    Payruns
-                  </Link>
-                  <Link
-                    href="/payroll/payslips"
-                    className={cn(
-                      "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
-                      pathname === "/payroll/payslips"
-                        ? "bg-primary/10 text-primary font-semibold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                    )}
-                  >
-                    Payslips
-                  </Link>
-                  <Link
-                    href="/payroll/structures"
-                    className={cn(
-                      "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
-                      pathname === "/payroll/structures"
-                        ? "bg-primary/10 text-primary font-semibold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                    )}
-                  >
-                    Salary Structures
-                  </Link>
-                  <Link
-                    href="/payroll/rules"
-                    className={cn(
-                      "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
-                      pathname === "/payroll/rules"
-                        ? "bg-primary/10 text-primary font-semibold"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                    )}
-                  >
-                    Salary Rules
-                  </Link>
-                </div>
-              )}
-            </div>
-
-            {/* Reports */}
-            <Link
-              href="/reports"
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium transition-colors",
-                pathname === "/reports"
-                  ? "bg-primary text-primary-foreground font-semibold shadow-xs"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              )}
-              title="Reports & Analytics"
-            >
-              <BarChart3 className="size-4 shrink-0" />
-              {sidebarOpen && <span>Reports</span>}
-            </Link>
+                <BarChart3 className="size-4 shrink-0" />
+                {sidebarOpen && <span>Reports</span>}
+              </Link>
+            )}
           </div>
 
           {/* Quick System Status Card at bottom */}
