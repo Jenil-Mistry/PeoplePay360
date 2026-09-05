@@ -43,20 +43,18 @@ export function InteractiveShowcase() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl text-xs font-bold transition-all shrink-0 border ${
-                isActive
+              className={`flex items-center gap-2.5 px-4 py-3 rounded-2xl text-xs font-bold transition-all shrink-0 border ${isActive
                   ? "bg-primary text-primary-foreground border-primary shadow-md scale-[1.02]"
                   : "bg-card/70 text-muted-foreground border-border/80 hover:bg-muted hover:text-foreground"
-              }`}
+                }`}
             >
               <Icon className="size-4 shrink-0" />
               <span>{tab.label}</span>
               <span
-                className={`text-[10px] px-2 py-0.5 rounded-full font-mono uppercase tracking-wider ${
-                  isActive
+                className={`text-[10px] px-2 py-0.5 rounded-full font-mono uppercase tracking-wider ${isActive
                     ? "bg-white/20 text-white font-bold"
                     : "bg-muted text-muted-foreground"
-                }`}
+                  }`}
               >
                 {tab.tag}
               </span>
