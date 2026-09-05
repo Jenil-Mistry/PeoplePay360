@@ -11,7 +11,11 @@ import {
   time,
   pgEnum,
   AnyPgColumn,
+  uniqueIndex,
+  index,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 /* ============================================================
    ENUMS
@@ -191,7 +195,12 @@ export const contracts = pgTable("contracts", {
     .references(() => salaryStructures.id)
     .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex("one_active_contract_per_employee")
+    .on(table.employeeId)
+    .where(sql`${table.status} = 'ACTIVE' AND ${table.endDate} IS NULL`),
+  index("contracts_employee_id_idx").on(table.employeeId),
+]);
 
 /* ============================================================
    3. Time Off: Types, Allocations, Requests
@@ -230,7 +239,9 @@ export const timeOffAllocations = pgTable("time_off_allocations", {
   approvedAt: timestamp("approved_at"),
   validFrom: date("valid_from").notNull(),
   validTo: date("valid_to").notNull(),
-});
+}, (table) => [
+  index("time_off_allocations_emp_type_idx").on(table.employeeId, table.timeOffTypeId)
+]);
 
 export const timeOffRequests = pgTable("time_off_requests", {
   id: serial("id").primaryKey(),
@@ -255,7 +266,9 @@ export const timeOffRequests = pgTable("time_off_requests", {
   approvedBy: integer("approved_by").references(() => employees.id),
   approvedAt: timestamp("approved_at"),
   notes: text("notes"),
-});
+}, (table) => [
+  index("time_off_requests_emp_status_idx").on(table.employeeId, table.status)
+]);
 
 /* ============================================================
    4. Salary Rules & Engine Architecture
@@ -285,7 +298,14 @@ export const salaryRules = pgTable("salary_rules", {
   // (e.g. mathjs), never a raw eval.
   formula: text("formula"),
   isActive: boolean("is_active").default(true).notNull(),
-});
+}, (table) => [
+  uniqueIndex("unique_rule_code_per_structure").on(table.structureId, table.code),
+  check("rule_computation_check", sql`
+    (${table.computationType} = 'FIXED' AND ${table.amount} IS NOT NULL) OR
+    (${table.computationType} = 'PERCENTAGE' AND ${table.percentage} IS NOT NULL AND ${table.baseCode} IS NOT NULL) OR
+    (${table.computationType} = 'FORMULA' AND ${table.formula} IS NOT NULL)
+  `)
+]);
 
 /* ============================================================
    5. Attendance — entirely missing in original schema
@@ -306,7 +326,9 @@ export const attendance = pgTable("attendance", {
   correctedBy: integer("corrected_by").references(() => employees.id),
   notes: text("notes"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex("one_attendance_per_employee_per_day").on(table.employeeId, table.date)
+]);
 
 /* ============================================================
    6. Payrun Batch & Payslip Execution Tables
@@ -356,7 +378,10 @@ export const payslips = pgTable("payslips", {
   hasWarnings: boolean("has_warnings").default(false).notNull(), // fast list-view flag
   status: payrunStatusEnum("status").default("DRAFT").notNull(),
   emailSentAt: timestamp("email_sent_at"), // tracks bulk "Send Payslips" delivery
-});
+}, (table) => [
+  index("payslips_payrun_id_idx").on(table.payrunId),
+  index("payslips_employee_id_idx").on(table.employeeId),
+]);
 
 export const payslipLines = pgTable("payslip_lines", {
   id: serial("id").primaryKey(),
@@ -368,7 +393,9 @@ export const payslipLines = pgTable("payslip_lines", {
   ruleName: varchar("rule_name", { length: 255 }).notNull(),
   category: ruleCategoryEnum("category").notNull(),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
-});
+}, (table) => [
+  index("payslip_lines_payslip_id_idx").on(table.payslipId),
+]);
 
 // Replaces the single warningMessage text field so multiple distinct
 // issues (missing bank details, duplicate payslip, contract gap, etc.)

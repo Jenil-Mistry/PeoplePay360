@@ -6,6 +6,7 @@ declare module "next-auth" {
       role: string;
       empId: string;
       employeeDbId: number;
+      jobPosition: string;
     } & DefaultSession["user"];
   }
 
@@ -13,6 +14,7 @@ declare module "next-auth" {
     role: string;
     empId: string;
     employeeDbId: number;
+    jobPosition: string;
   }
 }
 

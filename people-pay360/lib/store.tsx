@@ -155,7 +155,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         name: session.user.name || "User",
         email: session.user.email || "",
         role: ((session.user as unknown as Record<string, unknown>).role as UserRole) || "EMPLOYEE",
-        jobPosition: "Employee",
+        jobPosition: ((session.user as unknown as Record<string, unknown>).jobPosition as string) || "Employee",
         avatarInitials: getInitials(session.user.name || "U"),
       };
     }

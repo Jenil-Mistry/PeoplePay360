@@ -48,6 +48,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           role: employee.role,
           empId: employee.empId,
           employeeDbId: employee.id,
+          jobPosition: employee.jobPosition,
         };
       },
     }),
@@ -58,6 +59,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = (user as unknown as Record<string, unknown>).role as string;
         token.empId = (user as unknown as Record<string, unknown>).empId as string;
         token.employeeDbId = (user as unknown as Record<string, unknown>).employeeDbId as number;
+        token.jobPosition = (user as unknown as Record<string, unknown>).jobPosition as string;
       }
       return token;
     },
@@ -66,6 +68,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         (session.user as unknown as Record<string, unknown>).role = token.role;
         (session.user as unknown as Record<string, unknown>).empId = token.empId;
         (session.user as unknown as Record<string, unknown>).employeeDbId = token.employeeDbId;
+        (session.user as unknown as Record<string, unknown>).jobPosition = token.jobPosition;
         session.user.id = token.sub!;
       }
       return session;

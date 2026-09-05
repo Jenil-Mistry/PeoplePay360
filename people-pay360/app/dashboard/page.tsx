@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
   IndianRupee,
@@ -16,12 +16,15 @@ import {
   ShieldCheck,
   CheckCircle2,
   Users,
+  Loader2,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { formatCurrency, formatCompactCurrency } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getDashboardMetrics } from "@/lib/actions/dashboard";
+import { getOperationalAlerts, type OperationalAlert } from "@/lib/actions/alerts";
 
 export default function DashboardPage() {
   const { payruns, payslips, employees, attendance, timeOffRequests, allocations } = useAppStore();
@@ -29,6 +32,32 @@ export default function DashboardPage() {
   const [selectedPeriod, setSelectedPeriod] = useState("February 2026");
   const [selectedDept, setSelectedDept] = useState("All Departments");
   const [selectedEmpType, setSelectedEmpType] = useState("All Types");
+
+  // Server-derived dashboard state
+  const [metrics, setMetrics] = useState<Awaited<ReturnType<typeof getDashboardMetrics>> | null>(null);
+  const [alerts, setAlerts] = useState<OperationalAlert[]>([]);
+  const [metricsLoading, setMetricsLoading] = useState(true);
+
+  // Fetch live dashboard metrics from server
+  const refreshMetrics = useCallback(async () => {
+    try {
+      setMetricsLoading(true);
+      const [metricsResult, alertsResult] = await Promise.all([
+        getDashboardMetrics(),
+        getOperationalAlerts(),
+      ]);
+      setMetrics(metricsResult);
+      setAlerts(alertsResult);
+    } catch (err) {
+      console.error("Failed to load dashboard metrics:", err);
+    } finally {
+      setMetricsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshMetrics();
+  }, [refreshMetrics]);
 
   // Active Payrun
   const activePayrun = useMemo(() => {
@@ -44,52 +73,37 @@ export default function DashboardPage() {
     });
   }, [payslips, activePayrun, selectedDept]);
 
-  // Dynamic calculations for the 5 KPI cards
-  const totalNetSalary = useMemo(() => {
-    return filteredPayslips.reduce((acc, ps) => acc + ps.net, 0) || 642500;
-  }, [filteredPayslips]);
+  // Use server-derived KPIs when available, fallback to client computation
+  const totalNetSalary = metrics?.kpis.totalNetSalaryPaid ?? filteredPayslips.reduce((acc, ps) => acc + ps.net, 0);
+  const payslipsCount = metrics?.kpis.payslipsGenerated ?? filteredPayslips.length;
+  const avgSalary = metrics?.kpis.averageSalary ?? (payslipsCount > 0 ? Math.round(totalNetSalary / payslipsCount) : 0);
+  const approvedTimeOffDays = metrics?.kpis.approvedTimeOffDays ?? 0;
+  const attendanceHealth = metrics?.kpis.attendanceHealth ?? 0;
 
-  const payslipsCount = filteredPayslips.length || (activePayrun?.totalEmployees ?? 8);
-  const avgSalary = payslipsCount > 0 ? Math.round(totalNetSalary / payslipsCount) : 0;
-
-  const approvedTimeOffDays = useMemo(() => {
-    return timeOffRequests
-      .filter((r) => r.status === "Approved")
-      .reduce((acc, r) => acc + r.durationDays, 0);
-  }, [timeOffRequests]);
-
-  const attendanceHealth = useMemo(() => {
-    if (attendance.length === 0) return 94;
-    const presentCount = attendance.filter((a) => a.status === "Present" || a.status === "Late").length;
-    return Math.round((presentCount / attendance.length) * 100);
-  }, [attendance]);
-
-  // Department payroll breakdown
+  // Department payroll breakdown — from live server data
   const departmentBreakdown = useMemo(() => {
-    const map: Record<string, { count: number; totalWage: number }> = {
-      Engineering: { count: 3, totalWage: 265000 },
-      Finance: { count: 1, totalWage: 85000 },
-      HR: { count: 2, totalWage: 167000 },
-      Operations: { count: 1, totalWage: 90000 },
-      Sales: { count: 1, totalWage: 95000 },
-    };
-    return Object.entries(map);
-  }, []);
+    if (metrics?.deptBreakdown) {
+      return metrics.deptBreakdown.map((d) => [d.name, { count: d.headcount, totalWage: d.totalSalary }] as [string, { count: number; totalWage: number }]);
+    }
+    // No fallback to hardcoded values — show empty until data loads
+    return [] as [string, { count: number; totalWage: number }][];
+  }, [metrics]);
 
-  // Operational alerts
-  const operationalAlerts = useMemo(() => {
-    const list: string[] = [];
-    const missingBank = employees.filter((e) => !e.bankDetails?.accountNumber);
-    if (missingBank.length > 0) {
-      list.push(`${missingBank.length} employees missing bank account details`);
+  // Monthly trends — from live server data
+  const monthlyTrends = useMemo(() => {
+    if (metrics?.monthlyTrends && metrics.monthlyTrends.length > 0) {
+      const maxNet = Math.max(...metrics.monthlyTrends.map((t) => t.totalNet), 1);
+      return metrics.monthlyTrends.map((t) => ({
+        month: t.month.length > 3 ? t.month.slice(0, 3) : t.month,
+        amount: t.totalNet,
+        height: Math.round((t.totalNet / maxNet) * 95),
+      }));
     }
-    if (activePayrun?.warnings) {
-      list.push(...activePayrun.warnings);
-    }
-    list.push("4 payslip drafts pending final sign-off");
-    list.push("3 contracts expiring within the next 30 days");
-    return Array.from(new Set(list));
-  }, [employees, activePayrun]);
+    return [];
+  }, [metrics]);
+
+  // Operational alerts — from live server data
+  const operationalAlerts = alerts;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -167,9 +181,8 @@ export default function DashboardPage() {
             <div className="text-xl font-bold tracking-tight text-foreground font-mono">
               {formatCompactCurrency(totalNetSalary)}
             </div>
-            <p className="text-[11px] text-emerald-600 font-medium flex items-center gap-0.5 mt-1">
-              <TrendingUp className="size-3" />
-              <span>+8.5% vs previous month</span>
+            <p className="text-[11px] text-muted-foreground font-medium flex items-center gap-0.5 mt-1">
+              <span>Across {payslipsCount > 0 ? "active" : "all"} payruns</span>
             </p>
           </CardContent>
         </Card>
@@ -277,21 +290,19 @@ export default function DashboardPage() {
                 <CardTitle className="text-sm font-semibold">Monthly Net Salary Trend</CardTitle>
                 <CardDescription>Historical Payrun execution totals over the past 6 months</CardDescription>
               </div>
-              <span className="text-xs font-mono text-muted-foreground">Apr — Sep 2026</span>
+              <span className="text-xs font-mono text-muted-foreground">Payrun History</span>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-6 gap-2 pt-4 items-end h-40">
-                {[
-                  { month: "Apr", amount: 14.8, height: 60 },
-                  { month: "May", amount: 15.2, height: 65 },
-                  { month: "Jun", amount: 14.3, height: 55 },
-                  { month: "Jul", amount: 15.0, height: 62 },
-                  { month: "Aug", amount: 17.1, height: 80 },
-                  { month: "Sep", amount: 18.4, height: 95 },
-                ].map((item) => (
+              {monthlyTrends.length === 0 ? (
+                <div className="flex items-center justify-center h-40 text-xs text-muted-foreground">
+                  No payrun history available yet
+                </div>
+              ) : (
+              <div className={`grid gap-2 pt-4 items-end h-40`} style={{ gridTemplateColumns: `repeat(${Math.min(monthlyTrends.length, 12)}, 1fr)` }}>
+                {monthlyTrends.map((item) => (
                   <div key={item.month} className="flex flex-col items-center gap-1.5 h-full justify-end group">
                     <span className="text-[10px] font-mono font-semibold opacity-0 group-hover:opacity-100 transition-opacity text-primary">
-                      ₹{item.amount}L
+                      {formatCompactCurrency(item.amount)}
                     </span>
                     <div
                       className="w-full bg-primary/20 hover:bg-primary rounded-t-md transition-all duration-200"
@@ -301,6 +312,7 @@ export default function DashboardPage() {
                   </div>
                 ))}
               </div>
+              )}
             </CardContent>
           </Card>
 
@@ -385,15 +397,24 @@ export default function DashboardPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2.5">
-              {operationalAlerts.map((alert, idx) => (
-                <div
-                  key={idx}
-                  className="flex items-start gap-2.5 p-2.5 rounded-lg bg-card border border-border shadow-2xs text-xs"
-                >
-                  <span className="size-2 rounded-full bg-amber-500 mt-1 shrink-0" />
-                  <span className="text-foreground font-medium">{alert}</span>
+              {operationalAlerts.length === 0 ? (
+                <div className="flex items-center justify-center py-6 text-xs text-muted-foreground">
+                  <CheckCircle2 className="size-4 mr-2 text-emerald-500" />
+                  All systems clear! No operational alerts.
                 </div>
-              ))}
+              ) : (
+                operationalAlerts.map((alert) => (
+                  <Link key={alert.key} href={alert.linkTarget || "/dashboard"} className="block">
+                    <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-card border border-border shadow-2xs text-xs hover:border-primary/30 transition-colors">
+                      <span className={`size-2 rounded-full mt-1 shrink-0 ${
+                        alert.severity === "critical" ? "bg-red-500" :
+                        alert.severity === "warning" ? "bg-amber-500" : "bg-blue-500"
+                      }`} />
+                      <span className="text-foreground font-medium">{alert.message}</span>
+                    </div>
+                  </Link>
+                ))
+              )}
             </CardContent>
           </Card>
 
@@ -413,15 +434,15 @@ export default function DashboardPage() {
             <CardContent className="space-y-3.5">
               <div className="grid grid-cols-3 gap-2 text-center">
                 <div className="p-2.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200/50">
-                  <span className="text-lg font-bold font-mono text-emerald-700 dark:text-emerald-400">94</span>
+                  <span className="text-lg font-bold font-mono text-emerald-700 dark:text-emerald-400">{attendance.filter((a) => a.status === "Present").length}</span>
                   <p className="text-[10px] text-muted-foreground uppercase font-medium">Present</p>
                 </div>
                 <div className="p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50">
-                  <span className="text-lg font-bold font-mono text-amber-700 dark:text-amber-400">18</span>
+                  <span className="text-lg font-bold font-mono text-amber-700 dark:text-amber-400">{attendance.filter((a) => a.status === "Late").length}</span>
                   <p className="text-[10px] text-muted-foreground uppercase font-medium">Late</p>
                 </div>
                 <div className="p-2.5 rounded-lg bg-rose-50 dark:bg-rose-950/30 border border-rose-200/50">
-                  <span className="text-lg font-bold font-mono text-rose-700 dark:text-rose-400">9</span>
+                  <span className="text-lg font-bold font-mono text-rose-700 dark:text-rose-400">{attendance.filter((a) => a.status === "Absent").length}</span>
                   <p className="text-[10px] text-muted-foreground uppercase font-medium">Absent</p>
                 </div>
               </div>
@@ -429,19 +450,19 @@ export default function DashboardPage() {
               <div className="space-y-2 pt-2 border-t border-border text-xs">
                 <div className="flex justify-between text-muted-foreground">
                   <span>Missing check-outs</span>
-                  <span className="font-mono font-medium text-foreground">5 records</span>
+                  <span className="font-mono font-medium text-foreground">{attendance.filter((a) => !a.checkOut && a.checkIn).length} records</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Manual attendance edits</span>
-                  <span className="font-mono font-medium text-foreground">7 audited</span>
+                  <span className="font-mono font-medium text-foreground">{attendance.filter((a) => a.isManualEdit).length} audited</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Total overtime hours</span>
-                  <span className="font-mono font-semibold text-emerald-600">14.5 hrs</span>
+                  <span className="font-mono font-semibold text-emerald-600">{attendance.reduce((sum, a) => sum + (a.overtimeHours || 0), 0).toFixed(1)} hrs</span>
                 </div>
                 <div className="flex justify-between text-muted-foreground">
                   <span>Attendance coverage</span>
-                  <span className="font-mono font-bold text-foreground">94.2%</span>
+                  <span className="font-mono font-bold text-foreground">{attendanceHealth}%</span>
                 </div>
               </div>
             </CardContent>

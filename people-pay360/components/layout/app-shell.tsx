@@ -31,6 +31,7 @@ import { getVisibleSidebarModules } from "@/lib/rbac";
 import { signOut } from "next-auth/react";
 import { Badge } from "@/components/ui/badge";
 import { CommandPalette } from "./command-palette";
+import { getOperationalAlerts, type OperationalAlert } from "@/lib/actions/alerts";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -45,10 +46,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [isMac, setIsMac] = useState(false);
+  const [liveAlerts, setLiveAlerts] = useState<OperationalAlert[]>([]);
 
   useEffect(() => {
     setIsMac(typeof window !== "undefined" && /(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent));
   }, []);
+
+  // Load live alerts
+  useEffect(() => {
+    getOperationalAlerts()
+      .then(setLiveAlerts)
+      .catch((err) => console.error("Failed to load alerts:", err));
+  }, [pathname]); // Refresh when navigating
 
   // Global keyboard shortcut for Ctrl+K (Windows) and ⌘K (Mac)
   useEffect(() => {
@@ -77,9 +86,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       setIsDarkMode(true);
     }
   };
-
-  // Collect active warnings across payruns
-  const allWarnings = payruns.flatMap((p) => p.warnings || []);
 
   // Bypass admin shell on root landing page and auth pages
   if (
@@ -191,7 +197,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               title="Operational Alerts"
             >
               <Bell className="size-4" />
-              {allWarnings.length > 0 && (
+              {liveAlerts.length > 0 && (
                 <span className="absolute top-1 right-1 size-2 rounded-full bg-amber-500 ring-2 ring-card" />
               )}
             </button>
@@ -203,17 +209,34 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     <AlertTriangle className="size-4 text-amber-500" />
                     <span>Operational Alerts</span>
                   </div>
-                  <Badge variant="warning">{allWarnings.length} Issues</Badge>
+                  <Badge variant="warning">{liveAlerts.length} {liveAlerts.length === 1 ? "Issue" : "Issues"}</Badge>
                 </div>
                 <div className="mt-3 space-y-2 max-h-60 overflow-y-auto">
-                  {allWarnings.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">All systems clear! No payroll warnings.</p>
+                  {liveAlerts.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">All systems clear! No operational alerts.</p>
                   ) : (
-                    allWarnings.map((warn, i) => (
-                      <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-amber-50/50 dark:bg-amber-950/20 text-xs text-amber-800 dark:text-amber-300">
-                        <span className="size-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
-                        <span>{warn}</span>
-                      </div>
+                    liveAlerts.map((alert) => (
+                      <Link
+                        key={alert.key}
+                        href={alert.linkTarget || "/dashboard"}
+                        onClick={() => setAlertsOpen(false)}
+                        className="block"
+                      >
+                        <div className={`flex items-start gap-2 p-2 rounded-lg text-xs hover:bg-muted/50 transition-colors ${
+                          alert.severity === "critical" ? "bg-red-50/50 dark:bg-red-950/20 text-red-800 dark:text-red-300" :
+                          alert.severity === "warning" ? "bg-amber-50/50 dark:bg-amber-950/20 text-amber-800 dark:text-amber-300" :
+                          "bg-blue-50/50 dark:bg-blue-950/20 text-blue-800 dark:text-blue-300"
+                        }`}>
+                          <span className={`size-1.5 rounded-full mt-1.5 shrink-0 ${
+                            alert.severity === "critical" ? "bg-red-500" :
+                            alert.severity === "warning" ? "bg-amber-500" : "bg-blue-500"
+                          }`} />
+                          <div>
+                            <span className="font-medium">{alert.message}</span>
+                            <p className="text-[10px] opacity-70 mt-0.5 capitalize">{alert.type.replace(/_/g, " ")}</p>
+                          </div>
+                        </div>
+                      </Link>
                     ))
                   )}
                 </div>

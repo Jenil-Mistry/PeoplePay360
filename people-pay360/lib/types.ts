@@ -12,6 +12,7 @@ export interface Employee {
   managerId?: string;
   managerName?: string;
   scheduleId: string;
+  role: string;
   status: EmployeeStatus;
   company: string;
   workLocation: string;
