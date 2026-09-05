@@ -150,7 +150,7 @@ export function BentoFeatures() {
 
           <div className="p-4 rounded-2xl bg-muted/40 border border-border space-y-3">
             <div className="flex justify-between items-center text-xs">
-              <span className="text-muted-foreground">Today's Presence Health</span>
+              <span className="text-muted-foreground">Today&apos;s Presence Health</span>
               <span className="font-bold font-mono text-emerald-600">94.2%</span>
             </div>
             <div className="h-2.5 w-full rounded-full bg-muted overflow-hidden">

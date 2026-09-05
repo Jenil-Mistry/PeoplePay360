@@ -1,4 +1,5 @@
 import React from "react";
+import Link from "next/link";
 
 export default function AuthLayout({
   children,
@@ -16,14 +17,17 @@ export default function AuthLayout({
       <div className="relative z-10 w-full max-w-md">
         {/* Branding Header */}
         <div className="text-center mb-8">
-          <a href="/" className="inline-flex items-center gap-2.5 group">
+          <Link
+            href="/"
+            className="flex items-center justify-center gap-2 font-medium group"
+          >
             <div className="size-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center font-black text-lg shadow-md group-hover:scale-105 transition-transform">
               P
             </div>
             <span className="font-bold text-xl tracking-tight text-foreground">
               PeoplePay<span className="text-primary font-black">360</span>
             </span>
-          </a>
+          </Link>
           <p className="text-xs text-muted-foreground mt-2">
             Integrated HR & Payroll Operations
           </p>

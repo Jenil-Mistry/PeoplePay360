@@ -259,7 +259,7 @@ export async function getInitialAppState(): Promise<{
         status:
           al.status === "APPROVED"
             ? "Approved"
-            : al.status === "REFUSED"
+            : al.status === "REJECTED"
               ? "Refused"
               : "To Approve",
       };
@@ -280,7 +280,7 @@ export async function getInitialAppState(): Promise<{
         status:
           r.status === "APPROVED"
             ? "Approved"
-            : r.status === "REJECTED" || r.status === "REFUSED"
+            : r.status === "REJECTED"
               ? "Rejected"
               : r.status === "CANCELLED"
                 ? "Cancelled"

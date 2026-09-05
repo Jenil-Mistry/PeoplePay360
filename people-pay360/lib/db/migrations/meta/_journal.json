@@ -5,20 +5,15 @@
     {
       "idx": 0,
       "version": "7",
-<<<<<<< HEAD
-      "when": 1788636481128,
-      "tag": "0000_equal_frightful_four",
+      "when": 1788636667133,
+      "tag": "0000_nifty_calypso",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
-      "when": 1788636725697,
-      "tag": "0001_nice_joshua_kane",
-=======
-      "when": 1788636667133,
-      "tag": "0000_nifty_calypso",
->>>>>>> 924bbb4c07dadf401d4f0ae961a0be384c47d4c4
+      "when": 1788650785570,
+      "tag": "0001_glamorous_devos",
       "breakpoints": true
     }
   ]

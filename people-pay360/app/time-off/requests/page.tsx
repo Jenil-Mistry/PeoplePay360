@@ -52,7 +52,7 @@ function TimeOffRequestsContent() {
       const end = new Date(formData.endDate);
       let calculatedDays = 0;
       if (end >= start) {
-        let current = new Date(start);
+        const current = new Date(start);
         while (current <= end) {
           const dayOfWeek = current.getDay();
           if (dayOfWeek !== 0 && dayOfWeek !== 6) {
@@ -348,7 +348,7 @@ function TimeOffRequestsContent() {
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => handleRefuse(selectedRequest.id)}
+                  onClick={() => selectedRequest && handleRefuse(selectedRequest.id)}
                 >
                   <XCircle className="size-4" />
                   Reject
@@ -356,7 +356,7 @@ function TimeOffRequestsContent() {
                 <Button
                   size="sm"
                   variant="success"
-                  onClick={() => handleApprove(selectedRequest.id)}
+                  onClick={() => selectedRequest && handleApprove(selectedRequest.id)}
                 >
                   <CheckCircle2 className="size-4" />
                   Approve Request

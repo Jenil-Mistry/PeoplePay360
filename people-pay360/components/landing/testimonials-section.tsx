@@ -59,7 +59,7 @@ export function TestimonialsSection() {
                 ))}
               </div>
               <p className="text-xs sm:text-sm text-foreground leading-relaxed italic">
-                "{t.quote}"
+                &quot;{t.quote}&quot;
               </p>
             </div>
 

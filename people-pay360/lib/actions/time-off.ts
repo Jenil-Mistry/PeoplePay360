@@ -277,7 +277,7 @@ export async function createTimeOffRequest(data: {
       return { success: false, error: "End date cannot be before start date." };
     }
     let calculatedDays = 0;
-    let current = new Date(start);
+    const current = new Date(start);
     while (current <= end) {
       const dayOfWeek = current.getDay();
       if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Skip Sunday(0) and Saturday(6)
