@@ -151,10 +151,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const currentUser: ActiveUser = useMemo(() => {
     if (session?.user) {
       return {
-        id: (session.user as Record<string, unknown>).empId as string || session.user.id || "UNKNOWN",
+        id: (session.user as unknown as Record<string, unknown>).empId as string || session.user.id || "UNKNOWN",
         name: session.user.name || "User",
         email: session.user.email || "",
-        role: ((session.user as Record<string, unknown>).role as UserRole) || "EMPLOYEE",
+        role: ((session.user as unknown as Record<string, unknown>).role as UserRole) || "EMPLOYEE",
         jobPosition: "Employee",
         avatarInitials: getInitials(session.user.name || "U"),
       };
