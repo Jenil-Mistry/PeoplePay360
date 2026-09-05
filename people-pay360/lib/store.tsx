@@ -7,6 +7,7 @@ import {
   Contract,
   WorkingSchedule,
   AttendanceRecord,
+  AttendanceStatus,
   TimeOffType,
   LeaveAllocation,
   TimeOffRequest,
@@ -28,6 +29,8 @@ import {
 import {
   logAttendance as logAttendanceAction,
   correctAttendance as correctAttendanceAction,
+  recordCheckIn as recordCheckInAction,
+  recordCheckOut as recordCheckOutAction,
 } from "./actions/attendance";
 import {
   createTimeOffRequest as createTimeOffRequestAction,
@@ -95,6 +98,22 @@ interface AppState {
 
   addAttendance: (rec: Omit<AttendanceRecord, "id">) => AttendanceRecord;
   updateAttendance: (id: string, rec: Partial<AttendanceRecord>) => void;
+  checkInEmployee: (params: {
+    employeeId: string;
+    employeeName?: string;
+    date?: string;
+    checkInTime?: string;
+    scheduledTime?: string;
+    status?: AttendanceStatus;
+    notes?: string;
+  }) => AttendanceRecord;
+  checkOutEmployee: (params: {
+    recordId?: string;
+    employeeId?: string;
+    date?: string;
+    checkOutTime?: string;
+    notes?: string;
+  }) => AttendanceRecord | null;
 
   addTimeOffRequest: (req: Omit<TimeOffRequest, "id">) => TimeOffRequest;
   updateTimeOffRequestStatus: (id: string, status: "Approved" | "Refused") => void;
@@ -294,6 +313,118 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .catch((err) => console.error("Neon DB attendance correction failed:", err));
   };
 
+  const checkInEmployee = (params: {
+    employeeId: string;
+    employeeName?: string;
+    date?: string;
+    checkInTime?: string;
+    scheduledTime?: string;
+    status?: AttendanceStatus;
+    notes?: string;
+  }) => {
+    const today = params.date || new Date().toISOString().split("T")[0];
+    const nowTime =
+      params.checkInTime ||
+      `${String(new Date().getHours()).padStart(2, "0")}:${String(new Date().getMinutes()).padStart(2, "0")}`;
+    const emp = employees.find((e) => e.id === params.employeeId);
+    const empName = params.employeeName || (emp ? emp.name : "Employee");
+
+    const existing = attendance.find((a) => a.employeeId === params.employeeId && a.date === today);
+    if (existing) {
+      updateAttendance(existing.id, {
+        checkIn: nowTime,
+        status: params.status || existing.status || "Present",
+        notes: params.notes || "Check-in recorded.",
+      });
+      return existing;
+    }
+
+    const tempId = `ATT-${Date.now().toString().slice(-4)}`;
+    const optimisticRecord: AttendanceRecord = {
+      id: tempId,
+      employeeId: params.employeeId,
+      employeeName: empName,
+      date: today,
+      checkIn: nowTime,
+      workedHours: 0,
+      overtimeHours: 0,
+      status: params.status || "Present",
+      isManualEdit: false,
+      notes: params.notes || "Live punch clock check-in.",
+    };
+
+    setAttendance((prev) => [
+      optimisticRecord,
+      ...prev.filter((a) => !(a.employeeId === params.employeeId && a.date === today)),
+    ]);
+
+    recordCheckInAction({
+      employeeId: params.employeeId,
+      date: today,
+      checkInTime: nowTime,
+      scheduledTime: params.scheduledTime,
+      status: params.status,
+      notes: params.notes,
+    })
+      .then(() => refreshData())
+      .catch((err) => console.error("Check-in action error:", err));
+
+    return optimisticRecord;
+  };
+
+  const checkOutEmployee = (params: {
+    recordId?: string;
+    employeeId?: string;
+    date?: string;
+    checkOutTime?: string;
+    notes?: string;
+  }) => {
+    const today = params.date || new Date().toISOString().split("T")[0];
+    const nowTime =
+      params.checkOutTime ||
+      `${String(new Date().getHours()).padStart(2, "0")}:${String(new Date().getMinutes()).padStart(2, "0")}`;
+
+    const record = params.recordId
+      ? attendance.find((a) => a.id === params.recordId)
+      : attendance.find((a) => a.employeeId === params.employeeId && a.date === today);
+
+    if (!record) return null;
+
+    let worked = 0;
+    let ot = 0;
+    if (record.checkIn) {
+      const [inH, inM] = record.checkIn.split(":").map(Number);
+      const [outH, outM] = nowTime.split(":").map(Number);
+      let diffMinutes = (outH * 60 + outM) - (inH * 60 + inM);
+      if (diffMinutes < 0) diffMinutes += 24 * 60;
+      const hours = Math.max(0, diffMinutes / 60);
+      worked = Number(hours.toFixed(2));
+      ot = worked > 8.0 ? Number((worked - 8.0).toFixed(2)) : 0;
+    }
+
+    const updatedRecord: AttendanceRecord = {
+      ...record,
+      checkOut: nowTime,
+      workedHours: worked,
+      overtimeHours: ot,
+      notes: params.notes || record.notes || `Checked out at ${nowTime}.`,
+    };
+
+    setAttendance((prev) => prev.map((a) => (a.id === record.id ? updatedRecord : a)));
+
+    recordCheckOutAction({
+      recordId: record.id.startsWith("ATT-") ? record.id.replace("ATT-", "") : record.id,
+      employeeId: record.employeeId,
+      date: record.date,
+      checkOutTime: nowTime,
+      notes: params.notes,
+    })
+      .then(() => refreshData())
+      .catch((err) => console.error("Check-out action error:", err));
+
+    return updatedRecord;
+  };
+
   // 4. Time Off Mutations -> Neon DB
   const addTimeOffRequest = (data: Omit<TimeOffRequest, "id">) => {
     const tempId = `REQ-${Date.now().toString().slice(-4)}`;
@@ -481,6 +612,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateContract,
         addAttendance,
         updateAttendance,
+        checkInEmployee,
+        checkOutEmployee,
         addTimeOffRequest,
         updateTimeOffRequestStatus,
         addLeaveAllocation,
