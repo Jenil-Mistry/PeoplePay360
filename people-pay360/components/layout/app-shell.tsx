@@ -144,10 +144,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
 
-          <Badge variant="outline" className="hidden lg:inline-flex ml-2 gap-1 font-mono text-[11px] bg-muted/50">
-            <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            February 2026 • Validated
-          </Badge>
         </div>
 
         {/* Global Search & Action Area */}
