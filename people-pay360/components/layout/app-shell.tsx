@@ -117,9 +117,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navItems = allNavItems.filter((i) => i.show);
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col antialiased">
+    <div className="h-screen h-[100dvh] bg-background text-foreground flex flex-col overflow-hidden antialiased">
       {/* Top Header */}
-      <header className="sticky top-0 z-40 h-14 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-6">
+      <header className="shrink-0 z-40 h-14 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-6">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -287,11 +287,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Body container with Sidebar + Content */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden min-h-0">
         {/* Left Sidebar Desktop */}
         <aside
           className={cn(
-            "hidden md:flex flex-col border-r border-border bg-card transition-all duration-200 select-none",
+            "hidden md:flex flex-col shrink-0 h-full border-r border-border bg-card transition-all duration-200 select-none overflow-hidden",
             sidebarOpen ? "w-60" : "w-16"
           )}
         >
@@ -511,7 +511,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Main Content Viewport */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-background">
+        <main className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 lg:p-8 bg-background">
           <div className="max-w-7xl mx-auto w-full">{children}</div>
         </main>
       </div>
