@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -46,9 +47,9 @@
   --sidebar-border: oklch(0.9276 0.0058 264.5313);
   --sidebar-ring: oklch(0.6716 0.1368 48.5130);
 
-  --font-sans: var(--font-sans), 'Open Sans', ui-sans-serif, sans-serif, system-ui;
+  --font-sans: 'Open Sans', var(--font-open-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-serif: serif;
-  --font-mono: var(--font-mono), 'JetBrains Mono', monospace;
+  --font-mono: 'JetBrains Mono', var(--font-jetbrains-mono), monospace;
 
   --shadow-color: #000000;
   --shadow-opacity: 0.05;
@@ -106,9 +107,9 @@
   --sidebar-border: oklch(0.2520 0 0);
   --sidebar-ring: oklch(0.7482 0.1159 50.3636);
 
-  --font-sans: var(--font-sans), 'Open Sans', ui-sans-serif, sans-serif, system-ui;
+  --font-sans: 'Open Sans', var(--font-open-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-serif: serif;
-  --font-mono: var(--font-mono), 'JetBrains Mono', monospace;
+  --font-mono: 'JetBrains Mono', var(--font-jetbrains-mono), monospace;
 
   --shadow-color: #000000;
   --shadow-opacity: 0.05;
@@ -152,16 +153,16 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-mono);
-  --font-serif: var(--font-serif);
+  --font-sans: 'Open Sans', var(--font-open-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', var(--font-jetbrains-mono), monospace;
+  --font-serif: serif;
   --radius: var(--radius);
   --tracking-tighter: calc(var(--tracking-normal) - 0.05em);
   --tracking-tight: calc(var(--tracking-normal) - 0.025em);
   --tracking-wide: calc(var(--tracking-normal) + 0.025em);
   --tracking-wider: calc(var(--tracking-normal) + 0.05em);
   --tracking-widest: calc(var(--tracking-normal) + 0.1em);
-  --font-heading: var(--font-sans);
+  --font-heading: 'Open Sans', var(--font-open-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --tracking-normal: var(--tracking-normal);
   --shadow-2xl: var(--shadow-2xl);
   --shadow-xl: var(--shadow-xl);
@@ -200,6 +201,7 @@
 
 body {
   background-color: var(--background);
+  font-family: 'Open Sans', var(--font-open-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
 }
@@ -221,12 +223,16 @@ body {
 @layer base {
   body {
     letter-spacing: var(--tracking-normal);
+    font-family: 'Open Sans', var(--font-open-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     @apply bg-background text-foreground;
   }
   * {
     @apply border-border outline-ring/50;
   }
   html {
-    @apply font-sans;
+    font-family: 'Open Sans', var(--font-open-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Open Sans', var(--font-open-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 }
