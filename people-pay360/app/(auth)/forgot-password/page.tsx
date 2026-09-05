@@ -2,14 +2,11 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { KeyRound, Loader2, ShieldAlert } from "lucide-react";
-import { resetPasswordByAdmin } from "@/lib/actions/auth-actions";
-import { useSession } from "next-auth/react";
+import { resetPassword } from "@/lib/actions/auth-actions";
 import { validatePassword } from "@/lib/rbac";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2, KeyRound } from "lucide-react";
 
 export default function ForgotPasswordPage() {
-  const { data: session, status } = useSession();
 
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -19,9 +16,6 @@ export default function ForgotPasswordPage() {
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
-
-  const isAdmin = session?.user?.role === "ADMIN";
-  const isLoadingSession = status === "loading";
 
   const handlePasswordChange = (value: string) => {
     setNewPassword(value);
@@ -52,7 +46,7 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      const result = await resetPasswordByAdmin({
+      const result = await resetPassword({
         employeeEmail: email,
         newPassword,
       });
@@ -77,81 +71,13 @@ export default function ForgotPasswordPage() {
     }
   };
 
-  // Loading state
-  if (isLoadingSession) {
-    return (
-      <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-lg p-8 shadow-xl text-center">
-        <Loader2 className="size-6 animate-spin text-primary mx-auto" />
-        <p className="text-xs text-muted-foreground mt-3">Checking access…</p>
-      </div>
-    );
-  }
-
-  // Not logged in — show info page
-  if (!session?.user) {
-    return (
-      <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-lg p-8 shadow-xl">
-        <div className="text-center">
-          <div className="size-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
-            <KeyRound className="size-7" />
-          </div>
-          <h1 className="text-lg font-bold text-foreground mb-2">
-            Forgot Your Password?
-          </h1>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Password resets are handled by your system administrator. Please
-            contact your admin to reset your password.
-          </p>
-        </div>
-
-        <div className="mt-6 pt-4 border-t border-border text-center">
-          <Link
-            href="/sign-in"
-            className="text-xs text-primary hover:text-primary/80 font-semibold transition-colors"
-          >
-            ← Back to Sign In
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // Logged in but not admin
-  if (!isAdmin) {
-    return (
-      <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-lg p-8 shadow-xl">
-        <div className="text-center">
-          <div className="size-14 rounded-2xl bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-4">
-            <ShieldAlert className="size-7" />
-          </div>
-          <h1 className="text-lg font-bold text-foreground mb-2">
-            Admin Access Required
-          </h1>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Only administrators can reset employee passwords. Please contact
-            your system administrator.
-          </p>
-        </div>
-
-        <div className="mt-6 pt-4 border-t border-border text-center">
-          <Link
-            href="/dashboard"
-            className="text-xs text-primary hover:text-primary/80 font-semibold transition-colors"
-          >
-            ← Back to Dashboard
-          </Link>
-        </div>
-      </div>
-    );
-  }
-
-  // Admin — show reset form
+  // Show reset form unconditionally
   return (
     <div className="rounded-2xl border border-border bg-card/80 backdrop-blur-lg p-8 shadow-xl">
       <div className="text-center mb-6">
         <h1 className="text-xl font-bold text-foreground">Reset Password</h1>
         <p className="text-xs text-muted-foreground mt-1">
-          Reset an employee&apos;s password
+          Reset your password
         </p>
       </div>
 

@@ -17,6 +17,11 @@ export default auth((req) => {
   if (publicRoutes.includes(pathname)) {
     // If logged in and trying to access sign-in/sign-up, redirect to dashboard
     if (isLoggedIn && (pathname === "/sign-in" || pathname === "/sign-up")) {
+      const user = (req.auth as any)?.user;
+      // Admin is allowed to access sign-up to create employee accounts
+      if (pathname === "/sign-up" && user?.role === "ADMIN") {
+        return NextResponse.next();
+      }
       return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
     }
     return NextResponse.next();

@@ -6,9 +6,9 @@ import { AppProvider } from "@/lib/store";
 import { ToastProvider } from "@/components/ui/toast";
 import { AppShell } from "@/components/layout/app-shell";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+export function Providers({ children, session }: { children: React.ReactNode, session: any }) {
   return (
-    <SessionProvider>
+    <SessionProvider session={session}>
       <AppProvider>
         <ToastProvider>
           <AppShell>{children}</AppShell>

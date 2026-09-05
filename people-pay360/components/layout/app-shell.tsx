@@ -23,6 +23,7 @@ import {
   LogOut,
   UserPlus,
   KeyRound,
+  User,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAppStore } from "@/lib/store";
@@ -259,6 +260,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <span className="inline-block mt-1 text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
                     {currentUser.role.replace(/_/g, " ")}
                   </span>
+                </div>
+
+                <div className="border-b border-border mb-1 pb-1">
+                  <Link
+                    href="/profile"
+                    onClick={() => setUserMenuOpen(false)}
+                    className="w-full flex items-center gap-2 p-2 rounded-lg text-left text-foreground hover:bg-muted transition-colors"
+                  >
+                    <User className="size-3.5" />
+                    <span>Personal Profile</span>
+                  </Link>
                 </div>
 
                 {currentUser.role === "ADMIN" && (

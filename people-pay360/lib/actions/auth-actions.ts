@@ -109,16 +109,11 @@ export async function signInUser(data: { email: string; password: string }) {
 
 /* ── Forgot Password (Reset by Admin) ─────────────────────── */
 
-export async function resetPasswordByAdmin(data: {
+export async function resetPassword(data: {
   employeeEmail: string;
   newPassword: string;
 }) {
   try {
-    // Only ADMIN can reset passwords
-    const session = await auth();
-    if (!session?.user || session.user.role !== "ADMIN") {
-      return { error: "Only administrators can reset passwords." };
-    }
 
     // Validate new password
     const validation = validatePassword(data.newPassword);
