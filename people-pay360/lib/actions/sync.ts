@@ -161,14 +161,18 @@ export async function getInitialAppState(): Promise<{
     const mappedSchedules: WorkingSchedule[] = dbScheds.map((s) => {
       const lines = dbLines.filter((l) => l.scheduleId === s.id);
       return {
-        id: `SCH-${s.id}`,
+        id: s.id,
         name: s.name,
-        weeklyHours: parseFloat(s.totalWeeklyHours),
-        days: lines.map((l) => ({
-          day: dayNameMap[l.dayOfWeek] || "Monday",
+        type: s.type,
+        totalWeeklyHours: s.totalWeeklyHours,
+        isActive: s.isActive,
+        lines: lines.map((l) => ({
+          id: l.id,
+          scheduleId: l.scheduleId,
+          dayOfWeek: l.dayOfWeek,
           startTime: l.startTime.slice(0, 5),
           endTime: l.endTime.slice(0, 5),
-          breakHours: Math.round(l.breakMinutes / 60),
+          breakMinutes: l.breakMinutes,
         })),
       };
     });

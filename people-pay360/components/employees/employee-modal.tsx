@@ -50,7 +50,7 @@ const defaultEmployeeForm: Partial<Employee> = {
 };
 
 export function EmployeeModal({ employee, open, onOpenChange, isCreate = false }: EmployeeModalProps) {
-  const { updateEmployee, addEmployee, getEmployeeSmartCounts } = useAppStore();
+  const { updateEmployee, addEmployee, getEmployeeSmartCounts, schedules } = useAppStore();
   const { toast } = useToast();
 
   const [isEditing, setIsEditing] = useState(isCreate);
@@ -224,7 +224,19 @@ export function EmployeeModal({ employee, open, onOpenChange, isCreate = false }
 
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-muted-foreground">Working Schedule</label>
-                  <Input disabled value="Standard 40 Hours / Week" />
+                  <select
+                    disabled={!isEditing}
+                    value={formData.scheduleId || (schedules[0] ? `SCH-${schedules[0].id}` : "")}
+                    onChange={(e) => setFormData({ ...formData, scheduleId: e.target.value })}
+                    className="h-9 w-full rounded-lg border border-border bg-background px-3 py-1 text-sm disabled:opacity-50"
+                  >
+                    {schedules.length === 0 && <option value="">No schedules available</option>}
+                    {schedules.map((s) => (
+                      <option key={s.id} value={`SCH-${s.id}`}>
+                        {s.name} ({s.totalWeeklyHours}h)
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="space-y-1">

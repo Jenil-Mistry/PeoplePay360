@@ -177,17 +177,31 @@ export async function createContract(data: {
     }
 
     if (empRecord?.role === "ADMIN") {
-      return { success: false, error: "Cannot create an employment contract for an ADMIN user." };
+      throw new Error("Validation Error: Cannot create an employment contract for an ADMIN user.");
     }
 
     // 2. Resolve structure ID
-    let resolvedStructId = 1;
+    let resolvedStructId: number;
     const rawStruct = data.salaryStructureId || data.structureId;
     if (typeof rawStruct === "number") {
       resolvedStructId = rawStruct;
     } else if (rawStruct) {
-      resolvedStructId = parseInt(rawStruct.replace(/\D/g, ""), 10) || 1;
+      resolvedStructId = parseInt(rawStruct.replace(/\D/g, ""), 10);
+    } else {
+      throw new Error("Validation Error: Salary structure is required.");
     }
+    const [structRecord] = await db.select().from(salaryStructures).where(eq(salaryStructures.id, resolvedStructId));
+    if (!structRecord) throw new Error("Validation Error: Salary structure does not exist.");
+
+    const finalDeptId = data.departmentId || empRecord?.departmentId;
+    if (!finalDeptId) throw new Error("Validation Error: Department is required.");
+    const [deptRecord] = await db.select().from(departments).where(eq(departments.id, finalDeptId));
+    if (!deptRecord) throw new Error("Validation Error: Department does not exist.");
+
+    const finalScheduleId = data.workingScheduleId || empRecord?.workingScheduleId;
+    if (!finalScheduleId) throw new Error("Validation Error: Working schedule is required.");
+    const [schedRecord] = await db.select().from(workingSchedules).where(eq(workingSchedules.id, finalScheduleId));
+    if (!schedRecord) throw new Error("Validation Error: Working schedule does not exist.");
 
     // 3. Resolve status
     const statusMap: Record<
@@ -226,9 +240,13 @@ export async function createContract(data: {
         );
 
       if (existingActive) {
+        const newStartDate = new Date(data.startDate);
+        const closedDate = new Date(newStartDate.getTime() - 24 * 60 * 60 * 1000);
+        const closedDateStr = closedDate.toISOString().split("T")[0];
+        
         await db
           .update(contracts)
-          .set({ status: "EXPIRED", endDate: data.startDate })
+          .set({ status: "EXPIRED", endDate: closedDateStr })
           .where(eq(contracts.id, existingActive.id));
       }
     }
@@ -241,10 +259,9 @@ export async function createContract(data: {
       .values({
         employeeId: resolvedEmpId,
         name: contractName,
-        departmentId: data.departmentId || empRecord?.departmentId || 1,
+        departmentId: finalDeptId,
         jobPosition: data.jobPosition || empRecord?.jobPosition || "Specialist",
-        workingScheduleId:
-          data.workingScheduleId || empRecord?.workingScheduleId || 1,
+        workingScheduleId: finalScheduleId,
         startDate: data.startDate,
         endDate: data.endDate || null,
         wage: wageStr,
@@ -299,10 +316,17 @@ export async function updateContract(
 
     const updates: Record<string, any> = {};
     if (data.name || data.refCode) updates.name = data.refCode || data.name;
-    if (data.departmentId) updates.departmentId = data.departmentId;
+    if (data.departmentId !== undefined) {
+      const [deptRecord] = await db.select().from(departments).where(eq(departments.id, data.departmentId));
+      if (!deptRecord) throw new Error("Validation Error: Department does not exist.");
+      updates.departmentId = data.departmentId;
+    }
     if (data.jobPosition) updates.jobPosition = data.jobPosition;
-    if (data.workingScheduleId)
+    if (data.workingScheduleId !== undefined) {
+      const [schedRecord] = await db.select().from(workingSchedules).where(eq(workingSchedules.id, data.workingScheduleId));
+      if (!schedRecord) throw new Error("Validation Error: Working schedule does not exist.");
       updates.workingScheduleId = data.workingScheduleId;
+    }
     if (data.startDate) updates.startDate = data.startDate;
     if (data.endDate !== undefined) updates.endDate = data.endDate;
     if (data.wage)
@@ -327,10 +351,12 @@ export async function updateContract(
 
     if (data.salaryStructureId || data.structureId) {
       const rawStruct = data.salaryStructureId || data.structureId;
-      updates.salaryStructureId =
-        typeof rawStruct === "number"
+      const structId = typeof rawStruct === "number"
           ? rawStruct
-          : parseInt(rawStruct!.replace(/\D/g, ""), 10) || 1;
+          : parseInt(rawStruct!.replace(/\D/g, ""), 10);
+      const [structRecord] = await db.select().from(salaryStructures).where(eq(salaryStructures.id, structId));
+      if (!structRecord) throw new Error("Validation Error: Salary structure does not exist.");
+      updates.salaryStructureId = structId;
     }
 
     const [updated] = await db

@@ -38,18 +38,22 @@ export interface Contract {
   notes?: string;
 }
 
-export interface ScheduleDay {
-  day: "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday";
-  startTime: string; // e.g. "09:00"
-  endTime: string;   // e.g. "18:00"
-  breakHours: number; // e.g. 1
+export interface WorkingScheduleLine {
+  id?: number;
+  scheduleId?: number;
+  dayOfWeek: "MON" | "TUE" | "WED" | "THU" | "FRI" | "SAT" | "SUN";
+  startTime: string;
+  endTime: string;
+  breakMinutes: number;
 }
 
 export interface WorkingSchedule {
-  id: string;
+  id: number;
   name: string;
-  weeklyHours: number;
-  days: ScheduleDay[];
+  type: string;
+  totalWeeklyHours: string | number;
+  isActive: boolean;
+  lines?: WorkingScheduleLine[];
 }
 
 export type AttendanceStatus = "Present" | "Late" | "Absent";

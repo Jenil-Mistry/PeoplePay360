@@ -221,6 +221,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       department: data.department,
       bankDetails: data.bankDetails,
       employeeType: "FULL_TIME",
+      workingScheduleId: data.scheduleId ? parseInt(data.scheduleId.replace(/\D/g, ""), 10) : 1,
     })
       .then((res) => {
         if (res.success) {

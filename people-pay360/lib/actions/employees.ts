@@ -249,6 +249,10 @@ export async function createEmployee(data: {
   try {
     const user = await requireWriteAccess("employees");
 
+    if (data.role && user.role !== "ADMIN") {
+      throw new Error("Forbidden: Only ADMIN can assign roles.");
+    }
+
     const allDepts = await db.select().from(departments);
     let resolvedDeptId = data.departmentId;
 
@@ -256,14 +260,18 @@ export async function createEmployee(data: {
       const match = allDepts.find(
         (d) => d.name.toLowerCase() === data.department?.toLowerCase(),
       );
-      resolvedDeptId = match ? match.id : allDepts[0]?.id || 1;
-    } else if (!resolvedDeptId) {
-      resolvedDeptId = allDepts[0]?.id || 1;
+      resolvedDeptId = match ? match.id : undefined;
+    }
+
+    if (!resolvedDeptId) {
+      throw new Error("Validation Error: Department is required and must be valid.");
     }
 
     const allSchedules = await db.select().from(workingSchedules);
-    const resolvedScheduleId =
-      data.workingScheduleId || allSchedules[0]?.id || 1;
+    const resolvedScheduleId = data.workingScheduleId;
+    if (!resolvedScheduleId || !allSchedules.some(s => s.id === resolvedScheduleId)) {
+      throw new Error("Validation Error: Working schedule is required and must be valid.");
+    }
 
     const email =
       data.workEmail ||
@@ -308,22 +316,6 @@ export async function createEmployee(data: {
         isActive: true,
       })
       .returning();
-
-    // Automatically create an initial contract for new employee so they are payroll-ready
-    const allStructures = await db.select().from(salaryStructures);
-    const structId = allStructures[0]?.id || 1;
-
-    await db.insert(contracts).values({
-      employeeId: newEmployee.id,
-      name: `${newEmployee.name} - Initial Contract`,
-      departmentId: resolvedDeptId,
-      jobPosition: newEmployee.jobPosition,
-      workingScheduleId: resolvedScheduleId,
-      startDate: new Date().toISOString().split("T")[0],
-      wage: "65000.00",
-      status: "ACTIVE",
-      salaryStructureId: structId,
-    });
 
     try {
       revalidatePath("/employees");
@@ -372,6 +364,10 @@ export async function updateEmployee(
   try {
     const user = await requireWriteAccess("employees");
 
+    if (data.role && user.role !== "ADMIN") {
+      throw new Error("Forbidden: Only ADMIN can update roles.");
+    }
+
     let condition;
     if (typeof id === "number") {
       condition = eq(employees.id, id);
@@ -414,9 +410,21 @@ export async function updateEmployee(
       const match = allDepts.find(
         (d) => d.name.toLowerCase() === data.department?.toLowerCase(),
       );
-      if (match) updates.departmentId = match.id;
-    } else if (data.departmentId) {
+      if (match) {
+        updates.departmentId = match.id;
+      } else {
+        throw new Error("Validation Error: Department does not exist.");
+      }
+    } else if (data.departmentId !== undefined) {
+      const [dept] = await db.select().from(departments).where(eq(departments.id, data.departmentId));
+      if (!dept) throw new Error("Validation Error: Department does not exist.");
       updates.departmentId = data.departmentId;
+    }
+
+    if (data.workingScheduleId !== undefined) {
+      const [sched] = await db.select().from(workingSchedules).where(eq(workingSchedules.id, data.workingScheduleId));
+      if (!sched) throw new Error("Validation Error: Working schedule does not exist.");
+      updates.workingScheduleId = data.workingScheduleId;
     }
 
     if (data.bankDetails) {
