@@ -96,7 +96,7 @@ export async function logAttendance(data: {
       if (data.checkIn instanceof Date) {
         inDate = data.checkIn;
       } else if (data.checkIn.includes(":")) {
-        inDate = new Date(`${data.date}T${data.checkIn.length === 5 ? data.checkIn + ":00" : data.checkIn}Z`);
+        inDate = new Date(`${data.date}T${data.checkIn.length === 5 ? data.checkIn + ":00" : data.checkIn}`);
       } else {
         inDate = new Date(data.checkIn);
       }
@@ -106,7 +106,7 @@ export async function logAttendance(data: {
       if (data.checkOut instanceof Date) {
         outDate = data.checkOut;
       } else if (data.checkOut.includes(":")) {
-        outDate = new Date(`${data.date}T${data.checkOut.length === 5 ? data.checkOut + ":00" : data.checkOut}Z`);
+        outDate = new Date(`${data.date}T${data.checkOut.length === 5 ? data.checkOut + ":00" : data.checkOut}`);
       } else {
         outDate = new Date(data.checkOut);
       }
@@ -122,6 +122,21 @@ export async function logAttendance(data: {
       if (hours > 8) isOvertime = true;
     }
 
+    // Auto-calculate status from checkIn time against 09:00 AM shift (+10m tolerance)
+    let dbStatus: "PRESENT" | "LATE" | "ABSENT" | "ON_LEAVE" | "HALF_DAY" = "PRESENT";
+    if (data.checkIn) {
+      const timeStr = typeof data.checkIn === "string" && data.checkIn.includes(":")
+        ? data.checkIn
+        : (inDate ? `${String(inDate.getHours()).padStart(2, "0")}:${String(inDate.getMinutes()).padStart(2, "0")}` : "09:00");
+      const [inH, inM] = timeStr.split(":").map(Number);
+      if (!isNaN(inH) && !isNaN(inM)) {
+        const diffMinutes = (inH * 60 + inM) - (9 * 60);
+        dbStatus = diffMinutes > 10 ? "LATE" : "PRESENT";
+      }
+    } else {
+      dbStatus = "ABSENT";
+    }
+
     const statusMap: Record<string, "PRESENT" | "LATE" | "ABSENT" | "ON_LEAVE" | "HALF_DAY"> = {
       Present: "PRESENT",
       PRESENT: "PRESENT",
@@ -130,7 +145,47 @@ export async function logAttendance(data: {
       Absent: "ABSENT",
       ABSENT: "ABSENT",
     };
-    const dbStatus = (data.status ? statusMap[data.status] : "PRESENT") || "PRESENT";
+    if (data.status && statusMap[data.status]) {
+      dbStatus = statusMap[data.status];
+    }
+
+    // 1. Check if record for (employee, date) already exists
+    const existingRecords = await db
+      .select()
+      .from(attendance)
+      .where(and(eq(attendance.employeeId, resolvedEmpId), eq(attendance.date, data.date)));
+
+    if (existingRecords.length > 0) {
+      const primary = existingRecords[0];
+
+      // Purge any accidental duplicates from past operations
+      if (existingRecords.length > 1) {
+        for (let i = 1; i < existingRecords.length; i++) {
+          await db.delete(attendance).where(eq(attendance.id, existingRecords[i].id));
+        }
+      }
+
+      const [updated] = await db
+        .update(attendance)
+        .set({
+          checkIn: inDate || primary.checkIn,
+          checkOut: outDate || primary.checkOut,
+          workedHours: (inDate && outDate) ? workedHours : (data.workedHours ? (typeof data.workedHours === "number" ? data.workedHours.toFixed(2) : String(data.workedHours)) : primary.workedHours),
+          status: dbStatus,
+          isOvertime,
+          isManualCorrection: data.isManualEdit ?? primary.isManualCorrection,
+          notes: data.notes || primary.notes,
+        })
+        .where(eq(attendance.id, primary.id))
+        .returning();
+
+      try {
+        revalidatePath("/attendance");
+        revalidatePath("/dashboard");
+      } catch {}
+
+      return { success: true, record: updated };
+    }
 
     const [record] = await db
       .insert(attendance)
@@ -250,3 +305,146 @@ export async function getAttendanceHealthMetrics(startDate?: string, endDate?: s
     return { counts: { PRESENT: 0, LATE: 0, ABSENT: 0, ON_LEAVE: 0, HALF_DAY: 0, TOTAL: 0 }, attendanceRate: 100 };
   }
 }
+
+/**
+ * High-level Check-In action.
+ * Compares punch time against scheduled shift start (default 09:00).
+ * Allowed window is +- 10 minutes:
+ * - Within +- 10 mins (08:50 - 09:10): Status PRESENT
+ * - After +10 mins (> 09:10): Status LATE
+ */
+export async function recordCheckIn(data: {
+  employeeId: number | string;
+  date?: string;
+  checkInTime?: string;
+  scheduledTime?: string;
+  status?: "PRESENT" | "LATE" | "ABSENT" | "Present" | "Late" | "Absent";
+  notes?: string;
+}) {
+  const dateStr = data.date || new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const timeStr = data.checkInTime || `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const scheduledTime = data.scheduledTime || "09:00";
+
+  // Calculate tolerance against scheduled time (+- 10 minutes)
+  const [inH, inM] = timeStr.split(":").map(Number);
+  const [schH, schM] = scheduledTime.split(":").map(Number);
+  const diffMinutes = (inH * 60 + inM) - (schH * 60 + schM);
+
+  // Late if > +10 minutes
+  let calculatedStatus: "PRESENT" | "LATE" = "PRESENT";
+  let toleranceMessage = "Within allowed ±10 min tolerance window.";
+  if (diffMinutes > 10) {
+    calculatedStatus = "LATE";
+    toleranceMessage = `Late by ${diffMinutes} mins (exceeds +10m grace period).`;
+  } else if (diffMinutes < -10) {
+    calculatedStatus = "PRESENT";
+    toleranceMessage = `Early by ${Math.abs(diffMinutes)} mins.`;
+  } else {
+    calculatedStatus = "PRESENT";
+    toleranceMessage = "On time (within allowed ±10 min tolerance window).";
+  }
+
+  const finalStatus: "PRESENT" | "LATE" = data.status
+    ? (data.status.toUpperCase() === "LATE" ? "LATE" : "PRESENT")
+    : calculatedStatus;
+
+  const result = await logAttendance({
+    employeeId: data.employeeId,
+    date: dateStr,
+    checkIn: timeStr,
+    status: finalStatus,
+    notes: data.notes || `Punch in at ${timeStr}. ${toleranceMessage}`,
+    isManualEdit: false,
+  });
+
+  return {
+    ...result,
+    status: finalStatus,
+    diffMinutes,
+    toleranceMessage,
+    timeStr,
+  };
+}
+
+/**
+ * High-level Check-Out action.
+ * Updates checkout timestamp, calculates exact worked hours,
+ * and sets overtime flag if workedHours > 8.0.
+ */
+export async function recordCheckOut(data: {
+  recordId?: number | string;
+  employeeId?: number | string;
+  date?: string;
+  checkOutTime?: string;
+  notes?: string;
+}) {
+  const dateStr = data.date || new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const outTimeStr = data.checkOutTime || `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+  // Find record
+  let targetId = data.recordId;
+  if (!targetId && data.employeeId) {
+    const records = await getAttendanceRecords({ employeeId: data.employeeId, date: dateStr });
+    if (records.length > 0) {
+      targetId = records[0].id;
+    }
+  }
+
+  if (!targetId) {
+    return { success: false, error: "No active check-in found for this date. Please punch in first." };
+  }
+
+  const rawId = typeof targetId === "string" ? parseInt(targetId.replace(/\D/g, ""), 10) : targetId;
+  const [existing] = await db.select().from(attendance).where(eq(attendance.id, rawId));
+
+  let workedHours = "0.00";
+  let isOvertime = false;
+  if (existing?.checkIn) {
+    let inH = 0, inM = 0;
+    if (existing.checkIn instanceof Date) {
+      inH = existing.checkIn.getHours();
+      inM = existing.checkIn.getMinutes();
+    } else if (typeof existing.checkIn === "string") {
+      const m = (existing.checkIn as string).match(/(\d{2}):(\d{2})/);
+      if (m) {
+        inH = parseInt(m[1], 10);
+        inM = parseInt(m[2], 10);
+      }
+    }
+    const [outH, outM] = outTimeStr.split(":").map(Number);
+    let diffMinutes = (outH * 60 + outM) - (inH * 60 + inM);
+    if (diffMinutes < 0) diffMinutes += 24 * 60; // Overnight shift
+    const hours = Math.max(0, diffMinutes / 60);
+    workedHours = hours.toFixed(2);
+    if (hours > 8) isOvertime = true;
+  }
+
+  const outDate = new Date(`${dateStr}T${outTimeStr}:00`);
+
+  const [updated] = await db
+    .update(attendance)
+    .set({
+      checkOut: outDate,
+      workedHours,
+      isOvertime,
+      notes: data.notes || existing?.notes || `Checked out at ${outTimeStr}. Worked ${workedHours} hrs.`,
+    })
+    .where(eq(attendance.id, rawId))
+    .returning();
+
+  try {
+    revalidatePath("/attendance");
+    revalidatePath("/dashboard");
+  } catch {}
+
+  return {
+    success: true,
+    record: updated,
+    workedHours: parseFloat(workedHours),
+    isOvertime,
+    timeStr: outTimeStr,
+  };
+}
+

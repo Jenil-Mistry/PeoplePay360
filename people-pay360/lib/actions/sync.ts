@@ -169,22 +169,55 @@ export async function getInitialAppState(): Promise<{
       HALF_DAY: "Present",
     };
 
-    const mappedAttendance: AttendanceRecord[] = dbAtt.map((a) => {
+    const seenAttKeys = new Set<string>();
+    const mappedAttendance: AttendanceRecord[] = [];
+
+    // Sort descending by id so newest record per (employee, date) is retained
+    const sortedAtt = [...dbAtt].sort((x, y) => y.id - x.id);
+
+    for (const a of sortedAtt) {
+      const key = `${a.employeeId}-${a.date}`;
+      if (seenAttKeys.has(key)) continue;
+      seenAttKeys.add(key);
+
       const emp = empMap.get(a.employeeId);
-      return {
+
+      const formatTime = (val: any) => {
+        if (!val) return undefined;
+        if (typeof val === "string") {
+          const m = val.match(/(\d{2}):(\d{2})/);
+          if (m) return `${m[1]}:${m[2]}`;
+        }
+        const d = new Date(val);
+        return isNaN(d.getTime())
+          ? undefined
+          : `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      };
+
+      mappedAttendance.push({
         id: `ATT-${a.id}`,
         employeeId: emp ? (emp.empId || `EMP-${emp.id}`) : `EMP-${a.employeeId}`,
         employeeName: emp ? emp.name : "Employee",
         date: a.date,
-        checkIn: a.checkIn ? new Date(a.checkIn).toTimeString().slice(0, 5) : "09:00",
-        checkOut: a.checkOut ? new Date(a.checkOut).toTimeString().slice(0, 5) : "18:00",
-        workedHours: parseFloat(a.workedHours || "8.50"),
-        overtimeHours: a.isOvertime ? 1.0 : 0.0,
-        status: statusMap[a.status] || "Present",
+        checkIn: formatTime(a.checkIn) || "09:00",
+        checkOut: formatTime(a.checkOut),
+        workedHours: parseFloat(a.workedHours || "0.00"),
+        overtimeHours:
+          parseFloat(a.workedHours || "0") > 8.0
+            ? Number((parseFloat(a.workedHours || "0") - 8.0).toFixed(2))
+            : 0.0,
+        status: (() => {
+          const inTime = formatTime(a.checkIn);
+          if (!inTime) return "Absent";
+          const [inH, inM] = inTime.split(":").map(Number);
+          if (isNaN(inH) || isNaN(inM)) return statusMap[a.status] || "Present";
+          const diffMinutes = inH * 60 + inM - 9 * 60;
+          return diffMinutes > 10 ? "Late" : "Present";
+        })(),
         isManualEdit: a.isManualCorrection,
         notes: a.notes || undefined,
-      };
-    });
+      });
+    }
 
     // 5. Map Time Off Types
     const mappedTypes: TimeOffType[] = dbTypes.map((t) => ({
