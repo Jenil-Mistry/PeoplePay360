@@ -18,6 +18,7 @@ import {
 } from "./schema";
 import { computeEmployeePayroll } from "../payroll-server-engine";
 import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 
 async function seed() {
   console.log("🌱 Starting PeoplePay360 full database seed...");
@@ -226,6 +227,7 @@ async function seed() {
       wage: "85000.00",
       structId: regularStructId,
       contractEnd: null,
+      rawPassword: "Payroll@2026!",
     },
     {
       empId: "EMP-002",
@@ -241,6 +243,7 @@ async function seed() {
       wage: "95000.00",
       structId: regularStructId,
       contractEnd: null,
+      rawPassword: "Hr@2026!",
     },
     {
       empId: "EMP-003",
@@ -256,6 +259,7 @@ async function seed() {
       wage: "140000.00",
       structId: execStructId,
       contractEnd: null,
+      rawPassword: "Dev@2026!",
     },
     {
       empId: "EMP-004",
@@ -271,6 +275,7 @@ async function seed() {
       wage: "72000.00",
       structId: regularStructId,
       contractEnd: null,
+      rawPassword: "Recruit@2026!",
     },
     {
       empId: "EMP-005",
@@ -286,6 +291,7 @@ async function seed() {
       wage: "135000.00",
       structId: execStructId,
       contractEnd: null,
+      rawPassword: "Manager@2026!",
     },
     {
       empId: "ADM-001",
@@ -301,6 +307,7 @@ async function seed() {
       wage: "175000.00",
       structId: execStructId,
       contractEnd: null,
+      rawPassword: "Admin@2026!",
     },
     {
       empId: "EMP-006",
@@ -316,18 +323,21 @@ async function seed() {
       wage: "55000.00",
       structId: regularStructId,
       contractEnd: "2026-03-31", // Triggers EXPIRING_CONTRACT preflight warning
+      rawPassword: "Frontend@2026!",
     },
   ];
 
   for (const emp of sampleEmployees) {
     let [existing] = await db.select().from(employees).where(eq(employees.empId, emp.empId));
     if (!existing) {
+      const passwordHash = await bcrypt.hash(emp.rawPassword, 12);
       [existing] = await db
         .insert(employees)
         .values({
           empId: emp.empId,
           name: emp.name,
           email: emp.email,
+          passwordHash,
           role: emp.role,
           departmentId: emp.departmentId,
           jobPosition: emp.jobPosition,
@@ -337,6 +347,15 @@ async function seed() {
           bankName: emp.bankName,
         })
         .returning();
+      console.log(`Created ${emp.name} (${emp.email}) with password: ${emp.rawPassword}`);
+    } else {
+      // Update existing employees with the new password
+      const passwordHash = await bcrypt.hash(emp.rawPassword, 12);
+      await db
+        .update(employees)
+        .set({ passwordHash })
+        .where(eq(employees.id, existing.id));
+      console.log(`Updated ${emp.name} (${emp.email}) with password: ${emp.rawPassword}`);
     }
 
     if (existing) {

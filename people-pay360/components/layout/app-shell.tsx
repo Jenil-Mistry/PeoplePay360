@@ -20,15 +20,21 @@ import {
   X,
   AlertTriangle,
   Sparkles,
+  LogOut,
+  UserPlus,
+  KeyRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAppStore, AVAILABLE_USERS } from "@/lib/store";
+import { useAppStore } from "@/lib/store";
+import { getVisibleSidebarModules } from "@/lib/rbac";
+import { signOut } from "next-auth/react";
 import { Badge } from "@/components/ui/badge";
 import { CommandPalette } from "./command-palette";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { payruns, currentUser, setCurrentUser } = useAppStore();
+  const { payruns, currentUser } = useAppStore();
+  const sidebarAccess = getVisibleSidebarModules(currentUser.role);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [timeOffOpen, setTimeOffOpen] = useState(false);
@@ -74,14 +80,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Collect active warnings across payruns
   const allWarnings = payruns.flatMap((p) => p.warnings || []);
 
-  // Bypass admin shell on root landing page
-  if (pathname === "/") {
+  // Bypass admin shell on root landing page and auth pages
+  if (
+    pathname === "/" ||
+    pathname.startsWith("/sign-in") ||
+    pathname.startsWith("/sign-up") ||
+    pathname.startsWith("/forgot-password")
+  ) {
     return <main className="min-h-screen w-full bg-background text-foreground">{children}</main>;
   }
 
+  const canAccessPayroll = sidebarAccess.payroll;
+  const canAccessFullPayroll = sidebarAccess.payrollStructures;
+
   const isEmployee = currentUser.role === "EMPLOYEE";
-  const canAccessPayroll = currentUser.role === "PAYROLL_USER" || currentUser.role === "PAYROLL_MANAGER" || currentUser.role === "ADMIN";
-  const canAccessFullPayroll = currentUser.role === "PAYROLL_MANAGER" || currentUser.role === "ADMIN";
 
   const allNavItems = [
     {
@@ -96,14 +108,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       href: "/employees",
       icon: Users,
       active: pathname.startsWith("/employees"),
-      show: !isEmployee,
+      show: sidebarAccess.employees,
     },
     {
       label: "Contracts",
       href: "/contracts",
       icon: FileText,
       active: pathname.startsWith("/contracts"),
-      show: !isEmployee,
+      show: sidebarAccess.contracts,
     },
     {
       label: "Attendance",
@@ -240,41 +252,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </button>
 
             {userMenuOpen && (
-              <div className="absolute right-0 mt-2 w-72 rounded-xl border border-border bg-card p-2 shadow-2xl z-50 animate-in fade-in zoom-in-95 text-xs">
-                <div className="px-3 py-2 border-b border-border mb-1">
-                  <p className="font-bold text-foreground">Role-Based Access Control</p>
-                  <p className="text-[10px] text-muted-foreground">Select an active user to simulate role permissions (PDF Section 3):</p>
+              <div className="absolute right-0 mt-2 w-64 rounded-xl border border-border bg-card p-2 shadow-2xl z-50 animate-in fade-in zoom-in-95 text-xs">
+                <div className="px-3 py-2.5 border-b border-border mb-1">
+                  <p className="font-bold text-foreground">{currentUser.name}</p>
+                  <p className="text-[10px] text-muted-foreground">{currentUser.email}</p>
+                  <span className="inline-block mt-1 text-[9px] font-mono font-bold uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary border border-primary/20">
+                    {currentUser.role.replace(/_/g, " ")}
+                  </span>
                 </div>
-                <div className="space-y-1">
-                  {AVAILABLE_USERS.map((u) => {
-                    const isSelected = u.id === currentUser.id;
-                    return (
-                      <button
-                        key={u.id}
-                        onClick={() => {
-                          setCurrentUser(u);
-                          setUserMenuOpen(false);
-                        }}
-                        className={cn(
-                          "w-full flex items-center justify-between p-2 rounded-lg text-left transition-colors cursor-pointer",
-                          isSelected ? "bg-primary/10 text-primary font-bold" : "hover:bg-muted text-foreground"
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="size-6 rounded-full bg-muted font-bold text-[10px] flex items-center justify-center shrink-0">
-                            {u.avatarInitials}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-xs leading-tight">{u.name}</p>
-                            <p className="text-[10px] text-muted-foreground">{u.jobPosition}</p>
-                          </div>
-                        </div>
-                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-muted/60 text-muted-foreground uppercase">
-                          {u.role.replace("_", " ")}
-                        </span>
-                      </button>
-                    );
-                  })}
+
+                {currentUser.role === "ADMIN" && (
+                  <>
+                    <Link
+                      href="/sign-up"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="w-full flex items-center gap-2 p-2 rounded-lg text-left text-foreground hover:bg-muted transition-colors"
+                    >
+                      <UserPlus className="size-3.5" />
+                      <span>Create Employee Account</span>
+                    </Link>
+                    <Link
+                      href="/forgot-password"
+                      onClick={() => setUserMenuOpen(false)}
+                      className="w-full flex items-center gap-2 p-2 rounded-lg text-left text-foreground hover:bg-muted transition-colors"
+                    >
+                      <KeyRound className="size-3.5" />
+                      <span>Reset Employee Password</span>
+                    </Link>
+                  </>
+                )}
+
+                <div className="border-t border-border mt-1 pt-1">
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="w-full flex items-center gap-2 p-2 rounded-lg text-left text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                  >
+                    <LogOut className="size-3.5" />
+                    <span className="font-semibold">Sign Out</span>
+                  </button>
                 </div>
               </div>
             )}

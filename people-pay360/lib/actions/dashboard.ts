@@ -12,12 +12,17 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
 
+import { auth } from "@/lib/auth";
+
 export async function getDashboardMetrics(filters?: {
   departmentId?: number;
   employeeType?: "FULL_TIME" | "PART_TIME" | "CONTRACTOR" | "INTERN";
   payrunId?: number;
 }) {
   try {
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+
     // 1. Resolve filtered employees
     const empConditions = [];
     if (filters?.departmentId) {
