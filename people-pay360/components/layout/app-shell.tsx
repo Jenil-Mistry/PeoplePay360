@@ -129,9 +129,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const navItems = allNavItems.filter((i) => i.show);
 
   return (
-    <div className="h-screen h-[100dvh] bg-background text-foreground flex flex-col overflow-hidden antialiased">
+    <div className="app-shell-root h-screen h-[100dvh] bg-background text-foreground flex flex-col overflow-hidden antialiased print:h-auto print:overflow-visible print:bg-white print:text-black">
       {/* Top Header */}
-      <header className="shrink-0 z-40 h-14 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between pl-2 sm:pl-2.5 pr-4 sm:pr-6">
+      <header className="no-print print:hidden shrink-0 z-40 h-14 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between pl-2 sm:pl-2.5 pr-4 sm:pr-6">
         <div className="flex items-center gap-2 sm:gap-2.5">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -298,11 +298,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Body container with Sidebar + Content */}
-      <div className="flex flex-1 overflow-hidden min-h-0">
+      <div className="app-shell-body flex flex-1 overflow-hidden min-h-0 print:block print:h-auto print:overflow-visible">
         {/* Left Sidebar Desktop */}
         <aside
           className={cn(
-            "hidden md:flex flex-col shrink-0 h-full border-r border-border bg-card transition-all duration-200 select-none overflow-hidden",
+            "no-print print:hidden hidden md:flex flex-col shrink-0 h-full border-r border-border bg-card transition-all duration-200 select-none overflow-hidden",
             sidebarOpen ? "w-60" : "w-16"
           )}
         >
@@ -496,7 +496,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Mobile Navigation Drawer */}
         {mobileMenuOpen && (
-          <div className="fixed inset-0 z-50 bg-background/95 p-6 md:hidden flex flex-col justify-between">
+          <div className="no-print print:hidden fixed inset-0 z-50 bg-background/95 p-6 md:hidden flex flex-col justify-between">
             <div className="space-y-4">
               <div className="flex items-center justify-between pb-4 border-b border-border">
                 <div className="font-bold text-base">Navigation</div>
@@ -522,8 +522,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         )}
 
         {/* Main Content Viewport */}
-        <main className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 lg:p-8 bg-background">
-          <div className="max-w-7xl mx-auto w-full">{children}</div>
+        <main className="app-shell-main flex-1 overflow-y-auto min-h-0 p-4 sm:p-6 lg:p-8 bg-background print:p-0 print:m-0 print:overflow-visible print:block print:bg-white print:text-black">
+          <div className="max-w-7xl mx-auto w-full print:max-w-none print:w-full">{children}</div>
         </main>
       </div>
 

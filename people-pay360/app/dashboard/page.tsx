@@ -94,7 +94,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Top Header with Filters */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 pb-2 border-b border-border">
+      <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4 pb-2 border-b border-border">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Payroll & Operations Dashboard</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -102,14 +102,14 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* Filters Bar */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-card border border-border rounded-lg px-2.5 py-1 text-xs shadow-2xs">
-            <Filter className="size-3.5 text-muted-foreground" />
+        {/* Filters Bar & Action */}
+        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap overflow-x-auto shrink-0 pb-1 sm:pb-0">
+          <div className="flex items-center gap-1.5 bg-card border border-border rounded-lg px-2.5 py-1 text-xs shadow-2xs shrink-0">
+            <Filter className="size-3.5 text-muted-foreground shrink-0" />
             <select
               value={selectedPeriod}
               onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="bg-transparent font-semibold text-foreground focus:outline-none cursor-pointer"
+              className="bg-transparent font-semibold text-foreground focus:outline-none cursor-pointer text-xs"
             >
               {payruns.map((pr) => (
                 <option key={pr.id} value={pr.name}>
@@ -119,11 +119,11 @@ export default function DashboardPage() {
             </select>
           </div>
 
-          <div className="bg-card border border-border rounded-lg px-2.5 py-1 text-xs shadow-2xs">
+          <div className="bg-card border border-border rounded-lg px-2.5 py-1 text-xs shadow-2xs shrink-0">
             <select
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
-              className="bg-transparent text-foreground focus:outline-none cursor-pointer"
+              className="bg-transparent text-foreground focus:outline-none cursor-pointer text-xs"
             >
               <option value="All Departments">All Departments</option>
               <option value="Engineering">Engineering</option>
@@ -134,11 +134,11 @@ export default function DashboardPage() {
             </select>
           </div>
 
-          <div className="bg-card border border-border rounded-lg px-2.5 py-1 text-xs shadow-2xs">
+          <div className="bg-card border border-border rounded-lg px-2.5 py-1 text-xs shadow-2xs shrink-0">
             <select
               value={selectedEmpType}
               onChange={(e) => setSelectedEmpType(e.target.value)}
-              className="bg-transparent text-foreground focus:outline-none cursor-pointer"
+              className="bg-transparent text-foreground focus:outline-none cursor-pointer text-xs"
             >
               <option value="All Types">All Staff Types</option>
               <option value="Full-Time">Full-Time Staff</option>
@@ -146,10 +146,10 @@ export default function DashboardPage() {
             </select>
           </div>
 
-          <Link href="/payroll/payruns">
-            <Button size="sm" className="bg-primary text-primary-foreground font-medium">
+          <Link href="/payroll/payruns" className="shrink-0">
+            <Button size="sm" className="bg-primary text-primary-foreground font-medium shrink-0 whitespace-nowrap h-8">
               Go to Payrun
-              <ArrowRight className="size-3.5" />
+              <ArrowRight className="size-3.5 ml-1" />
             </Button>
           </Link>
         </div>

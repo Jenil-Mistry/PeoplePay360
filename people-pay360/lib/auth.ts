@@ -54,19 +54,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = (user as Record<string, unknown>).role as string;
-        token.empId = (user as Record<string, unknown>).empId as string;
-        token.employeeDbId = (user as Record<string, unknown>)
-          .employeeDbId as number;
+        token.role = (user as unknown as Record<string, unknown>).role as string;
+        token.empId = (user as unknown as Record<string, unknown>).empId as string;
+        token.employeeDbId = (user as unknown as Record<string, unknown>).employeeDbId as number;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as Record<string, unknown>).role = token.role;
-        (session.user as Record<string, unknown>).empId = token.empId;
-        (session.user as Record<string, unknown>).employeeDbId =
-          token.employeeDbId;
+        (session.user as unknown as Record<string, unknown>).role = token.role;
+        (session.user as unknown as Record<string, unknown>).empId = token.empId;
+        (session.user as unknown as Record<string, unknown>).employeeDbId = token.employeeDbId;
         session.user.id = token.sub!;
       }
       return session;
