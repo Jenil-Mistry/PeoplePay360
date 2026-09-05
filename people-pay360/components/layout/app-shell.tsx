@@ -54,12 +54,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Collect active warnings across payruns
   const allWarnings = payruns.flatMap((p) => p.warnings || []);
 
+  // Bypass admin shell on root landing page
+  if (pathname === "/") {
+    return <main className="min-h-screen w-full bg-background text-foreground">{children}</main>;
+  }
+
   const navItems = [
     {
       label: "Dashboard",
-      href: "/",
+      href: "/dashboard",
       icon: LayoutDashboard,
-      active: pathname === "/",
+      active: pathname === "/dashboard",
     },
     {
       label: "Employees",
@@ -100,7 +105,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {mobileMenuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
 
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link href="/dashboard" className="flex items-center gap-2.5">
             <div className="size-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm shadow-xs">
               P
             </div>
@@ -382,7 +387,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </button>
               </div>
               <div className="flex flex-col gap-2">
-                <Link onClick={() => setMobileMenuOpen(false)} href="/" className="px-3 py-2 rounded-md hover:bg-muted">Dashboard</Link>
+                <Link onClick={() => setMobileMenuOpen(false)} href="/dashboard" className="px-3 py-2 rounded-md hover:bg-muted">Dashboard</Link>
                 <Link onClick={() => setMobileMenuOpen(false)} href="/employees" className="px-3 py-2 rounded-md hover:bg-muted">Employees</Link>
                 <Link onClick={() => setMobileMenuOpen(false)} href="/contracts" className="px-3 py-2 rounded-md hover:bg-muted">Contracts</Link>
                 <Link onClick={() => setMobileMenuOpen(false)} href="/attendance" className="px-3 py-2 rounded-md hover:bg-muted">Attendance</Link>
