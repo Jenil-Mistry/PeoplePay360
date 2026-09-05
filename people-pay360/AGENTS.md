@@ -7,3 +7,13 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## PeoplePay360 UI Architecture
+Please follow the guidelines defined in [../AGENTS.md](../AGENTS.md) and [../../.agents/rules/frontend-skills.md](../.agents/rules/frontend-skills.md):
+- **Primary UI Foundation**: `shadcn/ui`
+- **Design Guidance**: `Frontend Design` & `Taste v2`
+- **Polish & QA**: `Impeccable`
+- **Animations**: `Motion` (Framer Motion)
+- **Optional**: `Kokonut UI` (secondary only)
+- **Excluded**: `Odoo / OWL`, `Aceternity UI`
+
