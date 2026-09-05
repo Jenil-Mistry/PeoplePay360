@@ -31,8 +31,8 @@ export default function SignInPage() {
         return;
       }
 
-      router.push(callbackUrl);
-      router.refresh();
+      // Force a full page reload to ensure the session and app context properly re-initialize
+      window.location.href = callbackUrl;
     } catch {
       setError("An unexpected error occurred. Please try again.");
       setIsLoading(false);
