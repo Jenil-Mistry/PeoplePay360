@@ -213,17 +213,72 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Print styles for Payslip PDF generation */
+/* Print styles for A4 Statutory Reports, Ledgers, and Payslip PDF Generation */
 @media print {
+  @page {
+    size: A4 portrait;
+    margin: 16mm;
+  }
+
+  html,
   body {
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
     background: #ffffff !important;
     color: #000000 !important;
+    font-size: 10pt !important;
+    line-height: 1.35 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  .no-print {
+
+  /* Completely hide AppShell navigation, header, sidebar, toolbars, and no-print elements */
+  header,
+  aside,
+  nav,
+  .no-print,
+  [data-no-print="true"] {
     display: none !important;
   }
+
+  /* Unconstrain all AppShell container heights for seamless multi-page pagination */
+  .app-shell-root,
+  .app-shell-body,
+  .app-shell-main {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+    background: transparent !important;
+  }
+
   .print-only {
     display: block !important;
+  }
+
+  /* Table formatting for A4 */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  thead {
+    display: table-header-group !important;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .print-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 }
 
