@@ -12,7 +12,7 @@ export interface Employee {
   managerId?: string;
   managerName?: string;
   scheduleId: string;
-  role: string;
+  role: "EMPLOYEE" | "HR_MANAGER" | "PAYROLL_USER" | "PAYROLL_MANAGER" | "ADMIN";
   status: EmployeeStatus;
   company: string;
   workLocation: string;

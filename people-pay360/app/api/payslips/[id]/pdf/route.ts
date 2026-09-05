@@ -35,7 +35,7 @@ export async function GET(
   if (user.role === "EMPLOYEE") {
     // Employees can only view their own payslips
     await requireReadAccess("payroll_own_payslip");
-    if (payslip.employeeId !== user.id && payslip.empId !== user.empId) {
+    if (payslip.employeeId !== user.employeeDbId && payslip.empId !== user.id) {
       return new NextResponse("Forbidden", { status: 403 });
     }
   } else {

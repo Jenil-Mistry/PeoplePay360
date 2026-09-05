@@ -23,5 +23,6 @@ declare module "next-auth/jwt" {
     role: string;
     empId: string;
     employeeDbId: number;
+    jobPosition?: string;
   }
 }
