@@ -95,7 +95,7 @@ export interface LeaveAllocation {
   description?: string;
 }
 
-export type RequestStatus = "To Approve" | "Approved" | "Refused";
+export type RequestStatus = "Draft" | "Pending" | "Approved" | "Rejected" | "Cancelled";
 
 export interface TimeOffRequest {
   id: string;

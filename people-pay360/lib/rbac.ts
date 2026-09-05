@@ -274,3 +274,26 @@ export function validatePassword(password: string): {
 
   return { valid: errors.length === 0, errors };
 }
+
+/* ── Time Off Approvals ─────────────────────────────────────── */
+
+/**
+ * Encapsulates the specific hierarchical logic for approving time-off requests.
+ * - Self-approval is never allowed.
+ * - HR cannot approve HR requests (Admin required).
+ * - Must have general WRITE access to 'time_off_approve'.
+ */
+export function canApproveTimeOff(
+  currentUserRole: UserRole | string,
+  requesterRole: UserRole | string,
+  isSelf: boolean
+): boolean {
+  if (isSelf) return false;
+  if (!hasWriteAccess(currentUserRole, "time_off_approve")) return false;
+  
+  // HR cannot approve HR requests
+  if (requesterRole === "HR_MANAGER" && currentUserRole === "HR_MANAGER") return false;
+  if (requesterRole === "ADMIN" && currentUserRole !== "ADMIN") return false;
+  
+  return true;
+}

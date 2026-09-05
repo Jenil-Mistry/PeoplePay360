@@ -58,8 +58,10 @@ export const timeOffUnitEnum = pgEnum("time_off_unit", ["DAYS", "HOURS"]);
 // Reused for both allocation approval and request approval workflows
 export const timeOffStatusEnum = pgEnum("time_off_status", [
   "DRAFT",
+  "PENDING",
   "APPROVED",
-  "REFUSED",
+  "REJECTED",
+  "CANCELLED",
 ]);
 
 export const attendanceStatusEnum = pgEnum("attendance_status", [

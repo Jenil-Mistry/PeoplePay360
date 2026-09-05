@@ -33,7 +33,7 @@ function TimeOffRequestsContent() {
   const searchParams = useSearchParams();
   const filterEmployee = searchParams.get("employee");
 
-  const { timeOffRequests, employees, timeOffTypes, allocations, addTimeOffRequest, updateTimeOffRequestStatus } = useAppStore();
+  const { timeOffRequests, employees, timeOffTypes, allocations, addTimeOffRequest, updateTimeOffRequestStatus, currentUser } = useAppStore();
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState(filterEmployee || "");
@@ -45,15 +45,51 @@ function TimeOffRequestsContent() {
   // Form State
   const [formData, setFormData] = useState<Partial<TimeOffRequest>>({});
 
+  // Auto-calculate duration skipping weekends
+  React.useEffect(() => {
+    if (isCreate && formData.startDate && formData.endDate) {
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.endDate);
+      let calculatedDays = 0;
+      if (end >= start) {
+        let current = new Date(start);
+        while (current <= end) {
+          const dayOfWeek = current.getDay();
+          if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+            calculatedDays++;
+          }
+          current.setDate(current.getDate() + 1);
+        }
+      }
+      calculatedDays = Math.max(1, calculatedDays);
+      if (formData.durationDays !== calculatedDays) {
+        setFormData(prev => ({ ...prev, durationDays: calculatedDays }));
+      }
+    }
+  }, [formData.startDate, formData.endDate, isCreate]);
+
   const filteredRequests = useMemo(() => {
     return timeOffRequests.filter((r) => {
+      // RBAC: Users without HR/ADMIN roles can only see their own requests
+      if (currentUser.role !== "HR_MANAGER" && currentUser.role !== "ADMIN") {
+        if (r.employeeId !== currentUser.id) {
+          return false;
+        }
+      }
+
       const matchesSearch =
         r.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         r.typeName.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesStatus = statusFilter === "All" || r.status === statusFilter;
+      
+      // Match status (normalizing To Approve to Pending just in case)
+      let normalizedStatus = r.status;
+      if (r.status === "To Approve" as any) normalizedStatus = "Pending" as any;
+      if (r.status === "Refused" as any) normalizedStatus = "Rejected" as any;
+
+      const matchesStatus = statusFilter === "All" || normalizedStatus === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [timeOffRequests, searchQuery, statusFilter]);
+  }, [timeOffRequests, searchQuery, statusFilter, currentUser]);
 
   const handleOpenRequest = (r: TimeOffRequest) => {
     setSelectedRequest(r);
@@ -65,14 +101,14 @@ function TimeOffRequestsContent() {
   const handleCreateNew = () => {
     setSelectedRequest(null);
     setFormData({
-      employeeId: employees[0]?.id || "",
-      employeeName: employees[0]?.name || "",
+      employeeId: currentUser.id || employees[0]?.id || "",
+      employeeName: currentUser.name || employees[0]?.name || "",
       typeId: timeOffTypes[0]?.id || "",
       typeName: timeOffTypes[0]?.name || "",
       startDate: new Date().toISOString().split("T")[0],
       endDate: new Date().toISOString().split("T")[0],
       durationDays: 1,
-      status: "To Approve",
+      status: "Pending",
       reason: "",
     });
     setIsCreate(true);
@@ -102,8 +138,8 @@ function TimeOffRequestsContent() {
   };
 
   const handleRefuse = (id: string) => {
-    updateTimeOffRequestStatus(id, "Refused");
-    toast({ title: "Request Refused", description: "Time off rejected.", type: "error" });
+    updateTimeOffRequestStatus(id, "Rejected");
+    toast({ title: "Request Rejected", description: "Time off rejected.", type: "error" });
     setIsModalOpen(false);
   };
 
@@ -138,7 +174,7 @@ function TimeOffRequestsContent() {
         </div>
 
         <div className="flex items-center gap-2">
-          {["All", "To Approve", "Approved", "Refused"].map((st) => (
+          {["All", "Pending", "Approved", "Rejected", "Cancelled"].map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
@@ -190,10 +226,10 @@ function TimeOffRequestsContent() {
                 </td>
                 <td className="py-3.5 px-4 text-center">
                   <Badge
-                    variant={r.status === "Approved" ? "success" : r.status === "To Approve" ? "warning" : "destructive"}
+                    variant={r.status === "Approved" ? "success" : r.status === "Pending" || r.status === "To Approve" as any ? "warning" : r.status === "Rejected" || r.status === "Refused" as any ? "destructive" : "default"}
                     className="text-[10px]"
                   >
-                    {r.status}
+                    {r.status === "To Approve" as any ? "Pending" : r.status === "Refused" as any ? "Rejected" : r.status}
                   </Badge>
                 </td>
                 <td className="py-3.5 px-4 text-right">
@@ -214,7 +250,7 @@ function TimeOffRequestsContent() {
                 {isCreate ? "New Time Off Request" : `Time Off Request / ${selectedRequest?.employeeName}`}
               </DialogTitle>
               {formData.status && (
-                <Badge variant={formData.status === "Approved" ? "success" : formData.status === "To Approve" ? "warning" : "destructive"}>
+                <Badge variant={formData.status === "Approved" ? "success" : formData.status === "Pending" ? "warning" : formData.status === "Rejected" ? "destructive" : "default"}>
                   {formData.status}
                 </Badge>
               )}
@@ -228,7 +264,7 @@ function TimeOffRequestsContent() {
             <div className="space-y-1">
               <label className="font-semibold text-muted-foreground">Employee</label>
               <select
-                disabled={!isCreate}
+                disabled={!isCreate || (currentUser.role !== "HR_MANAGER" && currentUser.role !== "ADMIN")}
                 value={formData.employeeId}
                 onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
                 className="h-9 w-full rounded-lg border border-border bg-background px-3 py-1 text-sm disabled:opacity-60"
@@ -282,10 +318,9 @@ function TimeOffRequestsContent() {
             <div className="space-y-1">
               <label className="font-semibold text-muted-foreground">Duration (Days)</label>
               <Input
-                disabled={!isCreate}
+                disabled
                 type="number"
                 value={formData.durationDays || 1}
-                onChange={(e) => setFormData({ ...formData, durationDays: Number(e.target.value) })}
                 className="font-mono font-bold"
               />
             </div>
@@ -308,7 +343,7 @@ function TimeOffRequestsContent() {
               <Button size="sm" onClick={handleSave} className="bg-primary text-primary-foreground ml-auto">
                 Submit Request
               </Button>
-            ) : selectedRequest?.status === "To Approve" ? (
+            ) : (selectedRequest?.status === "Pending" || selectedRequest?.status === "To Approve" as any) && currentUser.id !== selectedRequest?.employeeId && (currentUser.role === "ADMIN" || currentUser.role === "HR_MANAGER") ? (
               <div className="flex items-center justify-between w-full">
                 <Button
                   size="sm"
@@ -316,7 +351,7 @@ function TimeOffRequestsContent() {
                   onClick={() => handleRefuse(selectedRequest.id)}
                 >
                   <XCircle className="size-4" />
-                  Refuse
+                  Reject
                 </Button>
                 <Button
                   size="sm"

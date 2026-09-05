@@ -280,9 +280,13 @@ export async function getInitialAppState(): Promise<{
         status:
           r.status === "APPROVED"
             ? "Approved"
-            : r.status === "REFUSED"
-              ? "Refused"
-              : "To Approve",
+            : r.status === "REJECTED" || r.status === "REFUSED"
+              ? "Rejected"
+              : r.status === "CANCELLED"
+                ? "Cancelled"
+                : r.status === "DRAFT"
+                  ? "Draft"
+                  : "Pending",
         reason: r.notes || "Personal Leave",
         allocationId: r.allocationId ? `ALC-${r.allocationId}` : undefined,
       };

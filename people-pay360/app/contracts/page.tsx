@@ -45,6 +45,7 @@ function ContractsContent() {
 
   // Form State
   const [formData, setFormData] = useState<Partial<Contract>>({});
+  const [employeeSearchQuery, setEmployeeSearchQuery] = useState("");
 
   const filteredContracts = useMemo(() => {
     return contracts.filter((c) => {
@@ -59,6 +60,7 @@ function ContractsContent() {
   const handleOpenContract = (c: Contract) => {
     setSelectedContract(c);
     setFormData(c);
+    setEmployeeSearchQuery("");
     setIsCreate(false);
     setIsModalOpen(true);
   };
@@ -75,6 +77,7 @@ function ContractsContent() {
       status: "Running",
       notes: "Period running contract for employee.",
     });
+    setEmployeeSearchQuery("");
     setIsCreate(true);
     setIsModalOpen(true);
   };
@@ -226,13 +229,31 @@ function ContractsContent() {
           <div className="space-y-4 py-2 text-xs">
             <div className="space-y-1">
               <label className="font-semibold text-muted-foreground">Employee</label>
+              {isCreate && (
+                <div className="relative mb-2">
+                  <Search className="absolute left-2.5 top-2.5 size-3.5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={employeeSearchQuery}
+                    onChange={(e) => setEmployeeSearchQuery(e.target.value)}
+                    placeholder="Search employee by name or department..."
+                    className="h-8 w-full rounded-md border border-border bg-background pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  />
+                </div>
+              )}
               <select
                 disabled={!isCreate}
                 value={formData.employeeId}
                 onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
                 className="h-9 w-full rounded-lg border border-border bg-background px-3 py-1 text-sm disabled:opacity-60"
               >
-                {employees.filter(emp => emp.role !== "ADMIN").map((emp) => (
+                {employees
+                  .filter(emp => emp.role !== "ADMIN")
+                  .filter(emp => 
+                    emp.name.toLowerCase().includes(employeeSearchQuery.toLowerCase()) || 
+                    emp.department.toLowerCase().includes(employeeSearchQuery.toLowerCase())
+                  )
+                  .map((emp) => (
                   <option key={emp.id} value={emp.id}>
                     {emp.name} ({emp.department} • {emp.jobPosition})
                   </option>

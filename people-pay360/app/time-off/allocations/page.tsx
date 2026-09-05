@@ -20,7 +20,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { useToast } from "@/components/ui/toast";
 
 export default function TimeOffAllocationsPage() {
-  const { allocations, employees, timeOffTypes, addLeaveAllocation } = useAppStore();
+  const { allocations, employees, timeOffTypes, addLeaveAllocation, currentUser } = useAppStore();
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -30,6 +30,8 @@ export default function TimeOffAllocationsPage() {
 
   // Form State
   const [formData, setFormData] = useState<Partial<LeaveAllocation>>({});
+
+  const canCreateAllocation = currentUser.role === "HR_MANAGER" || currentUser.role === "ADMIN";
 
   const filteredAllocations = useMemo(() => {
     return allocations.filter((a) => {
@@ -99,10 +101,12 @@ export default function TimeOffAllocationsPage() {
           </p>
         </div>
 
-        <Button size="sm" onClick={handleCreateNew} className="bg-primary text-primary-foreground">
-          <Plus className="size-4" />
-          <span>NEW ALLOCATION</span>
-        </Button>
+        {canCreateAllocation && (
+          <Button size="sm" onClick={handleCreateNew} className="bg-primary text-primary-foreground">
+            <Plus className="size-4" />
+            <span>NEW ALLOCATION</span>
+          </Button>
+        )}
       </div>
 
       {/* Filter and Search Bar */}

@@ -116,7 +116,7 @@ interface AppState {
   }) => AttendanceRecord | null;
 
   addTimeOffRequest: (req: Omit<TimeOffRequest, "id">) => TimeOffRequest;
-  updateTimeOffRequestStatus: (id: string, status: "Approved" | "Refused") => void;
+  updateTimeOffRequestStatus: (id: string, status: "Approved" | "Rejected" | "Cancelled") => void;
 
   addLeaveAllocation: (alloc: Omit<LeaveAllocation, "id">) => LeaveAllocation;
 
@@ -446,9 +446,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return optimisticReq;
   };
 
-  const updateTimeOffRequestStatus = (id: string, status: "Approved" | "Refused") => {
+  const updateTimeOffRequestStatus = (id: string, status: "Approved" | "Rejected" | "Cancelled") => {
     setTimeOffRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
 
+    // For now we map both Rejected and Cancelled to the refuse action, or skip if needed.
+    // The spec requires 'refuseTimeOffRequestAction' to handle the DB update.
     const action = status === "Approved" ? approveTimeOffRequestAction(id) : refuseTimeOffRequestAction(id);
     action
       .then(() => refreshData())
