@@ -188,6 +188,10 @@ export async function createContract(data: {
         empRecord?.id || parseInt(data.employeeId.replace(/\D/g, ""), 10) || 1;
     }
 
+    if (empRecord?.role === "ADMIN") {
+      return { success: false, error: "Cannot create an employment contract for an ADMIN user." };
+    }
+
     // 2. Resolve structure ID
     let resolvedStructId = 1;
     const rawStruct = data.salaryStructureId || data.structureId;

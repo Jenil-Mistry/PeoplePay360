@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPayslipDetail } from "@/lib/actions/payroll";
+import { getAuthenticatedUser, requireReadAccess } from "@/lib/actions/auth-helpers";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export async function GET(
@@ -18,6 +19,27 @@ export async function GET(
 
   if (!payslip) {
     return new NextResponse("Payslip Not Found", { status: 404 });
+  }
+
+  // 1. Enforce PAID status
+  if (payslip.status !== "PAID") {
+    return new NextResponse("Payslip is not in PAID status", { status: 403 });
+  }
+
+  // 2. Enforce authorization
+  const user = await getAuthenticatedUser();
+  if (!user) {
+    return new NextResponse("Unauthorized", { status: 401 });
+  }
+  
+  if (user.role === "EMPLOYEE") {
+    // Employees can only view their own payslips
+    await requireReadAccess("payroll_own_payslip");
+    if (payslip.employeeId !== user.id && payslip.empId !== user.empId) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+  } else {
+    await requireReadAccess("payroll_view");
   }
 
   const earnings = payslip.lines.filter((l) => l.category === "BASIC" || l.category === "ALLOWANCE");

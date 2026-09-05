@@ -11,8 +11,7 @@ import {
   payslips,
 } from "@/lib/db/schema";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
-
-import { auth } from "@/lib/auth";
+import { getAuthenticatedUser } from "./auth-helpers";
 
 export async function getDashboardMetrics(filters?: {
   departmentId?: number;
@@ -20,8 +19,7 @@ export async function getDashboardMetrics(filters?: {
   payrunId?: number;
 }) {
   try {
-    const session = await auth();
-    if (!session?.user) throw new Error("Unauthorized");
+    const user = await getAuthenticatedUser();
 
     // 1. Resolve filtered employees
     const empConditions = [];
@@ -65,7 +63,7 @@ export async function getDashboardMetrics(filters?: {
     }
 
     const totalNetSalaryPaid = allPayslips
-      .filter((p) => p.status === "PAID" || p.status === "VALIDATED")
+      .filter((p) => p.status === "PAID")
       .reduce((sum, p) => sum + parseFloat(p.netSalary), 0);
 
     const payslipsGenerated = allPayslips.length;
@@ -146,26 +144,6 @@ export async function getDashboardMetrics(filters?: {
       };
     });
 
-    // 7. Operational Alerts
-    const alerts: string[] = [];
-    const missingBank = filteredEmployees.filter(
-      (e) => !e.bankAccountNumber || e.bankAccountNumber.trim() === "",
-    );
-    if (missingBank.length > 0) {
-      alerts.push(
-        `${missingBank.length} employees missing bank account details`,
-      );
-    }
-    if (pendingApprovalsCount > 0) {
-      alerts.push(
-        `${pendingApprovalsCount} time off requests awaiting manager approval`,
-      );
-    }
-    const warningSlips = allPayslips.filter((p) => p.hasWarnings).length;
-    if (warningSlips > 0) {
-      alerts.push(`${warningSlips} payslips flagged with pre-flight warnings`);
-    }
-
     return {
       kpis: {
         totalNetSalaryPaid,
@@ -176,7 +154,6 @@ export async function getDashboardMetrics(filters?: {
       },
       deptBreakdown,
       monthlyTrends,
-      alerts,
       totalEmployees: filteredEmployees.length,
     };
   } catch (error) {

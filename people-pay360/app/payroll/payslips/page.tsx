@@ -70,7 +70,9 @@ function PayslipsContent() {
   };
 
   const handlePrint = () => {
-    window.print();
+    if (selectedPayslip) {
+      window.open(`/api/payslips/${selectedPayslip.id}/pdf`, "_blank");
+    }
   };
 
   return (
@@ -191,10 +193,12 @@ function PayslipsContent() {
                   </p>
                 </div>
 
-                <Button size="sm" onClick={handlePrint} className="bg-primary text-primary-foreground font-semibold no-print">
-                  <Printer className="size-3.5" />
-                  PRINT PAYSLIP
-                </Button>
+                {selectedPayslip.status === "Paid" && (
+                  <Button size="sm" onClick={handlePrint} className="bg-primary text-primary-foreground font-semibold no-print">
+                    <Printer className="size-3.5 mr-2" />
+                    PRINT PAYSLIP
+                  </Button>
+                )}
               </div>
 
               {/* Identification Badges Summary Bar (Matches Excalidraw Screen 5) */}

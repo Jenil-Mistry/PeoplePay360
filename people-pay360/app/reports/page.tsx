@@ -39,9 +39,78 @@ export default function ReportsPage() {
   const totalNet = runPayslips.reduce((acc, ps) => acc + ps.net, 0);
 
   const handleExportCSV = () => {
+    if (runPayslips.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No payslips available for the selected payrun.",
+        type: "error",
+      });
+      return;
+    }
+
+    // CSV escaping: wrap in quotes if contains comma, quote, or newline
+    const escapeCSV = (val: string | number | undefined) => {
+      const str = String(val ?? "");
+      if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+
+    const headers = [
+      "Employee ID",
+      "Employee Name",
+      "Department",
+      "Payrun",
+      "Period Start",
+      "Period End",
+      "Worked Days",
+      "Basic Wage",
+      "Gross Salary",
+      "Deductions",
+      "Net Salary",
+      "Status",
+      "Warning Count",
+    ];
+
+    const rows = runPayslips.map((ps) => [
+      escapeCSV(ps.employeeId),
+      escapeCSV(ps.employeeName),
+      escapeCSV(ps.department),
+      escapeCSV(activeRun?.name || ""),
+      escapeCSV(ps.periodStart),
+      escapeCSV(ps.periodEnd),
+      escapeCSV(ps.workedDays),
+      escapeCSV(ps.basic),
+      escapeCSV(ps.gross),
+      escapeCSV(ps.deductions),
+      escapeCSV(ps.net),
+      escapeCSV(ps.status),
+      escapeCSV(ps.warnings?.length || 0),
+    ]);
+
+    // UTF-8 BOM for Excel compatibility
+    const BOM = "\uFEFF";
+    const csvContent = BOM + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+
+    // Deterministic filename: payrun name + export date
+    const sanitizedName = (activeRun?.name || "payrun").replace(/[^a-zA-Z0-9]/g, "_");
+    const exportDate = new Date().toISOString().split("T")[0];
+    const filename = `PeoplePay360_${sanitizedName}_${exportDate}.csv`;
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
     toast({
-      title: "Export Generated",
-      description: `Exported ${runPayslips.length} records to CSV format.`,
+      title: "CSV Downloaded",
+      description: `Exported ${runPayslips.length} payslip records to ${filename}.`,
       type: "success",
     });
   };

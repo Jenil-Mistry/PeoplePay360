@@ -11,11 +11,13 @@ import {
   employees,
   contracts,
   departments,
+  attendance,
 } from "@/lib/db/schema";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, inArray, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { computeEmployeePayroll } from "@/lib/payroll-server-engine";
 import { getActiveContractForPeriod } from "./contracts";
+import { getAuthenticatedUser, requireWriteAccess, requireReadAccess } from "./auth-helpers";
 
 export async function getSalaryStructures() {
   try {
@@ -454,23 +456,11 @@ export async function computePayrunBatch(
         .from(employees)
         .where(inArray(employees.id, resolvedTargetIds));
     } else {
-      const eligible = await getEligibleEmployeesForPayrun(
-        payrun.startDate,
-        payrun.endDate,
-      );
-      if (eligible.length > 0) {
-        empList = await db
-          .select()
-          .from(employees)
-          .where(
-            inArray(
-              employees.id,
-              eligible.map((e) => e.id),
-            ),
-          );
-      } else {
-        empList = await db.select().from(employees);
+      const eligible = await getEligibleEmployeesForPayrun(payrun.startDate, payrun.endDate);
+      if (eligible.length === 0) {
+        return { success: false, error: "No eligible employees found for this payrun period. All employees must have active contracts covering the period." };
       }
+      empList = await db.select().from(employees).where(inArray(employees.id, eligible.map((e) => e.id)));
     }
 
     // Clear any previous draft payslips for this payrun
@@ -503,6 +493,37 @@ export async function computePayrunBatch(
 
       const rulesToUse = contractRules.length > 0 ? contractRules : rules;
 
+      // Calculate actual worked days from attendance records for the payrun period
+      const attRecords = await db
+        .select({ status: attendance.status })
+        .from(attendance)
+        .where(
+          and(
+            eq(attendance.employeeId, emp.id),
+            gte(attendance.date, payrun.startDate),
+            lte(attendance.date, payrun.endDate),
+            sql`${attendance.status} IN ('PRESENT', 'LATE', 'HALF_DAY')`
+          )
+        );
+      // Count HALF_DAY as 0.5, PRESENT/LATE as 1
+      let workedDays = 0;
+      for (const rec of attRecords) {
+        workedDays += rec.status === "HALF_DAY" ? 0.5 : 1;
+      }
+      // If no attendance records exist yet, fall back to calendar-based estimate
+      if (workedDays === 0) {
+        const start = new Date(payrun.startDate);
+        const end = new Date(payrun.endDate);
+        let weekdays = 0;
+        const d = new Date(start);
+        while (d <= end) {
+          const day = d.getDay();
+          if (day !== 0 && day !== 6) weekdays++;
+          d.setDate(d.getDate() + 1);
+        }
+        workedDays = weekdays;
+      }
+
       const computation = computeEmployeePayroll({
         employee: {
           id: emp.id,
@@ -519,7 +540,7 @@ export async function computePayrunBatch(
         rules: rulesToUse,
         periodStart: payrun.startDate,
         periodEnd: payrun.endDate,
-        workedDays: 22,
+        workedDays,
       });
 
       const [newPayslip] = await db
@@ -529,7 +550,7 @@ export async function computePayrunBatch(
           employeeId: emp.id,
           contractId: contract.id,
           structureId: contract.salaryStructureId,
-          workedDays: "22.00",
+          workedDays: workedDays.toFixed(2),
           basicWage: computation.basicWage.toFixed(2),
           grossSalary: computation.grossSalary.toFixed(2),
           netSalary: computation.netSalary.toFixed(2),
@@ -578,10 +599,16 @@ export async function computePayrunBatch(
 
 export async function validatePayrun(payrunId: number | string) {
   try {
-    const rawId =
-      typeof payrunId === "string"
-        ? parseInt(payrunId.replace(/\D/g, ""), 10)
-        : payrunId;
+    await requireWriteAccess("payroll_validate_paid");
+
+    const rawId = typeof payrunId === "string" ? parseInt(payrunId.replace(/\D/g, ""), 10) : payrunId;
+
+    // Enforce lifecycle: only COMPUTED payrun can be validated
+    const [payrun] = await db.select({ status: payruns.status }).from(payruns).where(eq(payruns.id, rawId));
+    if (!payrun) return { success: false, error: "Payrun not found." };
+    if (payrun.status !== "COMPUTED") {
+      return { success: false, error: `Cannot validate: payrun is in '${payrun.status}' status. Must be COMPUTED first.` };
+    }
 
     await db
       .update(payruns)
@@ -608,10 +635,17 @@ export async function validatePayrun(payrunId: number | string) {
 
 export async function markPayrunPaid(payrunId: number | string) {
   try {
-    const rawId =
-      typeof payrunId === "string"
-        ? parseInt(payrunId.replace(/\D/g, ""), 10)
-        : payrunId;
+    await requireWriteAccess("payroll_validate_paid");
+
+    const rawId = typeof payrunId === "string" ? parseInt(payrunId.replace(/\D/g, ""), 10) : payrunId;
+
+    // Enforce lifecycle: only VALIDATED payrun can be paid
+    const [payrun] = await db.select({ status: payruns.status }).from(payruns).where(eq(payruns.id, rawId));
+    if (!payrun) return { success: false, error: "Payrun not found." };
+    if (payrun.status !== "VALIDATED") {
+      return { success: false, error: `Cannot mark as paid: payrun is in '${payrun.status}' status. Must be VALIDATED first.` };
+    }
+
     const paidAt = new Date();
 
     await db
@@ -645,16 +679,22 @@ export async function sendPayslipsBulk(payrunId: number | string) {
         : payrunId;
     const sentAt = new Date();
 
-    await db
+    const result = await db
       .update(payslips)
       .set({ emailSentAt: sentAt })
       .where(eq(payslips.payrunId, rawId));
+
+    // Count actual number of affected payslips
+    const affectedSlips = await db
+      .select({ id: payslips.id })
+      .from(payslips)
+      .where(and(eq(payslips.payrunId, rawId), sql`${payslips.emailSentAt} IS NOT NULL`));
 
     try {
       revalidatePath(`/payroll/payruns/${rawId}`);
     } catch {}
 
-    return { success: true, countSent: 1 };
+    return { success: true, countSent: affectedSlips.length };
   } catch (error: any) {
     console.error(`Failed to send payslips for payrun ${payrunId}:`, error);
     return {

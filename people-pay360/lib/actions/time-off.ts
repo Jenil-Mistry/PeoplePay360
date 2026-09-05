@@ -9,6 +9,8 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { getAuthenticatedUser, requireWriteAccess } from "./auth-helpers";
+import { hasWriteAccess } from "@/lib/rbac";
 
 export async function getTimeOffTypes() {
   try {
@@ -87,16 +89,15 @@ export async function createTimeOffAllocation(data: {
   approvedBy?: number;
 }) {
   try {
+    const currentUser = await getAuthenticatedUser();
+
     let resolvedEmpId: number;
     if (typeof data.employeeId === "number") {
       resolvedEmpId = data.employeeId;
     } else {
-      const [emp] = await db
-        .select({ id: employees.id })
-        .from(employees)
-        .where(eq(employees.empId, data.employeeId));
-      resolvedEmpId =
-        emp?.id || parseInt(data.employeeId.replace(/\D/g, ""), 10) || 1;
+      const [emp] = await db.select({ id: employees.id }).from(employees).where(eq(employees.empId, data.employeeId));
+      if (!emp) return { success: false, error: "Employee not found" };
+      resolvedEmpId = emp.id;
     }
 
     let resolvedTypeId = 1;
@@ -223,16 +224,15 @@ export async function createTimeOffRequest(data: {
   allocationId?: number | string;
 }) {
   try {
+    const currentUser = await getAuthenticatedUser();
+
     let resolvedEmpId: number;
     if (typeof data.employeeId === "number") {
       resolvedEmpId = data.employeeId;
     } else {
-      const [emp] = await db
-        .select({ id: employees.id })
-        .from(employees)
-        .where(eq(employees.empId, data.employeeId));
-      resolvedEmpId =
-        emp?.id || parseInt(data.employeeId.replace(/\D/g, ""), 10) || 1;
+      const [emp] = await db.select({ id: employees.id }).from(employees).where(eq(employees.empId, data.employeeId));
+      if (!emp) return { success: false, error: "Employee not found" };
+      resolvedEmpId = emp.id;
     }
 
     let resolvedTypeId = 1;
@@ -251,12 +251,14 @@ export async function createTimeOffRequest(data: {
           : parseInt(data.allocationId.replace(/\D/g, ""), 10) || null;
     }
 
-    const units =
-      data.durationDays !== undefined
-        ? data.durationDays.toFixed(2)
-        : typeof data.requestedUnits === "number"
-          ? data.requestedUnits.toFixed(2)
-          : data.requestedUnits || "1.00";
+    // Server-side date calculation: never trust client-provided duration
+    const startMs = new Date(data.startDate).getTime();
+    const endMs = new Date(data.endDate).getTime();
+    if (endMs < startMs) {
+      return { success: false, error: "End date cannot be before start date." };
+    }
+    const calculatedDays = Math.max(1, Math.round((endMs - startMs) / (1000 * 60 * 60 * 24)) + 1);
+    const units = calculatedDays.toFixed(2);
     const notes = data.reason || data.notes || "Leave request";
 
     const [request] = await db
@@ -291,15 +293,12 @@ export async function createTimeOffRequest(data: {
 /**
  * Approves a Time Off Request and automatically decrements the employee's allocation balance (Spec A4 & B4).
  */
-export async function approveTimeOffRequest(
-  requestId: number | string,
-  approverEmployeeId?: number,
-) {
+export async function approveTimeOffRequest(requestId: number | string) {
   try {
-    const rawId =
-      typeof requestId === "string"
-        ? parseInt(requestId.replace(/\D/g, ""), 10)
-        : requestId;
+    // Require HR/Admin role to approve
+    const currentUser = await requireWriteAccess("time_off_approve");
+
+    const rawId = typeof requestId === "string" ? parseInt(requestId.replace(/\D/g, ""), 10) : requestId;
 
     const [req] = await db
       .select({
@@ -314,8 +313,8 @@ export async function approveTimeOffRequest(
       .where(eq(timeOffRequests.id, rawId));
 
     if (!req) return { success: false, error: "Leave request not found" };
-    if (req.status === "APPROVED")
-      return { success: true, message: "Request already approved" };
+    if (req.status === "APPROVED") return { success: true, message: "Request already approved" };
+    if (req.status === "REFUSED") return { success: false, error: "Cannot approve a refused request" };
 
     const [type] = await db
       .select()
@@ -326,11 +325,20 @@ export async function approveTimeOffRequest(
       .update(timeOffRequests)
       .set({
         status: "APPROVED",
-        approvedBy: approverEmployeeId || 1,
+        approvedBy: currentUser.employeeDbId,
         approvedAt: new Date(),
       })
-      .where(eq(timeOffRequests.id, rawId))
+      .where(
+        and(
+          eq(timeOffRequests.id, rawId),
+          eq(timeOffRequests.status, "DRAFT") // Prevent race condition: only approve if still pending
+        )
+      )
       .returning();
+
+    if (!updatedReq) {
+      return { success: false, error: "Request was already processed by another user." };
+    }
 
     if (type?.requiresAllocation) {
       let targetAllocationId = req.allocationId;
@@ -378,21 +386,18 @@ export async function approveTimeOffRequest(
   }
 }
 
-export async function refuseTimeOffRequest(
-  requestId: number | string,
-  approverEmployeeId?: number,
-) {
+export async function refuseTimeOffRequest(requestId: number | string) {
   try {
-    const rawId =
-      typeof requestId === "string"
-        ? parseInt(requestId.replace(/\D/g, ""), 10)
-        : requestId;
+    // Require HR/Admin role to refuse
+    const currentUser = await requireWriteAccess("time_off_approve");
+
+    const rawId = typeof requestId === "string" ? parseInt(requestId.replace(/\D/g, ""), 10) : requestId;
 
     const [updatedReq] = await db
       .update(timeOffRequests)
       .set({
         status: "REFUSED",
-        approvedBy: approverEmployeeId || 1,
+        approvedBy: currentUser.employeeDbId,
         approvedAt: new Date(),
       })
       .where(eq(timeOffRequests.id, rawId))

@@ -1,9 +1,11 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { attendance, employees, workingSchedules } from "@/lib/db/schema";
+import { attendance, employees, workingSchedules, workingScheduleLines } from "@/lib/db/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { getAuthenticatedUser, requireReadAccess } from "./auth-helpers";
+import { hasWriteAccess, hasReadAccess } from "@/lib/rbac";
 
 export async function getAttendanceRecords(filters?: {
   employeeId?: number | string;
@@ -92,16 +94,20 @@ export async function logAttendance(data: {
   notes?: string;
 }) {
   try {
+    const currentUser = await getAuthenticatedUser();
+
     let resolvedEmpId: number;
     if (typeof data.employeeId === "number") {
       resolvedEmpId = data.employeeId;
     } else {
-      const [emp] = await db
-        .select({ id: employees.id })
-        .from(employees)
-        .where(eq(employees.empId, data.employeeId));
-      resolvedEmpId =
-        emp?.id || parseInt(data.employeeId.replace(/\D/g, ""), 10) || 1;
+      const [emp] = await db.select({ id: employees.id }).from(employees).where(eq(employees.empId, data.employeeId));
+      if (!emp) return { success: false, error: "Employee not found" };
+      resolvedEmpId = emp.id;
+    }
+
+    // Enforce self-only for non-HR/Admin users
+    if (resolvedEmpId !== currentUser.employeeDbId && !hasWriteAccess(currentUser.role, "attendance_correct_others")) {
+      return { success: false, error: "You can only record your own attendance." };
     }
 
     // Parse checkIn and checkOut
@@ -146,9 +152,24 @@ export async function logAttendance(data: {
       if (hours > 8) isOvertime = true;
     }
 
-    // Auto-calculate status from checkIn time against 09:00 AM shift (+10m tolerance)
-    let dbStatus: "PRESENT" | "LATE" | "ABSENT" | "ON_LEAVE" | "HALF_DAY" =
-      "PRESENT";
+    // Resolve scheduled start time from the employee's working schedule
+    let scheduledStartMinutes = 9 * 60; // default 09:00
+    const [empRecord] = await db.select({ workingScheduleId: employees.workingScheduleId }).from(employees).where(eq(employees.id, resolvedEmpId));
+    if (empRecord?.workingScheduleId) {
+      const dayOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][new Date(data.date).getDay()];
+      const [scheduleLine] = await db
+        .select({ startTime: workingScheduleLines.startTime })
+        .from(workingScheduleLines)
+        .where(and(eq(workingScheduleLines.scheduleId, empRecord.workingScheduleId), eq(workingScheduleLines.dayOfWeek, dayOfWeek as any)))
+        .limit(1);
+      if (scheduleLine?.startTime) {
+        const [sh, sm] = scheduleLine.startTime.split(":").map(Number);
+        if (!isNaN(sh) && !isNaN(sm)) scheduledStartMinutes = sh * 60 + sm;
+      }
+    }
+
+    // Auto-calculate status from checkIn time against scheduled shift start (+10m tolerance)
+    let dbStatus: "PRESENT" | "LATE" | "ABSENT" | "ON_LEAVE" | "HALF_DAY" = "PRESENT";
     if (data.checkIn) {
       const timeStr =
         typeof data.checkIn === "string" && data.checkIn.includes(":")
@@ -158,7 +179,7 @@ export async function logAttendance(data: {
             : "09:00";
       const [inH, inM] = timeStr.split(":").map(Number);
       if (!isNaN(inH) && !isNaN(inM)) {
-        const diffMinutes = inH * 60 + inM - 9 * 60;
+        const diffMinutes = (inH * 60 + inM) - scheduledStartMinutes;
         dbStatus = diffMinutes > 10 ? "LATE" : "PRESENT";
       }
     } else {
@@ -282,11 +303,18 @@ export async function correctAttendance(
   },
 ) {
   try {
-    const rawId =
-      typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
+    const currentUser = await getAuthenticatedUser();
+
+    // Only HR and Admin can correct others' attendance
+    if (!hasWriteAccess(currentUser.role, "attendance_correct_others")) {
+      return { success: false, error: "Forbidden: Insufficient permissions to correct attendance." };
+    }
+
+    const rawId = typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
 
     const updates: Record<string, any> = {
       isManualCorrection: true,
+      correctedBy: currentUser.employeeDbId,
     };
 
     if (data.checkIn) {
