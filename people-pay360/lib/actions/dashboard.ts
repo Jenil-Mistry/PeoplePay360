@@ -69,7 +69,10 @@ export async function getDashboardMetrics(filters?: {
       .reduce((sum, p) => sum + parseFloat(p.netSalary), 0);
 
     const payslipsGenerated = allPayslips.length;
-    const averageSalary = payslipsGenerated > 0 ? Math.round(totalNetSalaryPaid / payslipsGenerated) : 0;
+    const averageSalary =
+      payslipsGenerated > 0
+        ? Math.round(totalNetSalaryPaid / payslipsGenerated)
+        : 0;
 
     // 3. Approved Time Off Days
     const leaveRequests = await db
@@ -81,23 +84,45 @@ export async function getDashboardMetrics(filters?: {
       .from(timeOffRequests);
 
     const approvedLeaves = leaveRequests
-      .filter((r) => r.status === "APPROVED" && (empIds.length === 0 || empIds.includes(r.employeeId)))
+      .filter(
+        (r) =>
+          r.status === "APPROVED" &&
+          (empIds.length === 0 || empIds.includes(r.employeeId)),
+      )
       .reduce((sum, r) => sum + parseFloat(r.requestedUnits.toString()), 0);
 
-    const pendingApprovalsCount = leaveRequests.filter((r) => r.status === "DRAFT").length;
+    const pendingApprovalsCount = leaveRequests.filter(
+      (r) => r.status === "DRAFT",
+    ).length;
 
     // 4. Attendance Health
-    const attRecords = await db.select({ status: attendance.status, employeeId: attendance.employeeId }).from(attendance);
-    const filteredAtt = attRecords.filter((a) => empIds.length === 0 || empIds.includes(a.employeeId));
-    const presentCount = filteredAtt.filter((a) => a.status === "PRESENT" || a.status === "LATE").length;
-    const attendanceHealth = filteredAtt.length > 0 ? Math.round((presentCount / filteredAtt.length) * 100) : 100;
+    const attRecords = await db
+      .select({ status: attendance.status, employeeId: attendance.employeeId })
+      .from(attendance);
+    const filteredAtt = attRecords.filter(
+      (a) => empIds.length === 0 || empIds.includes(a.employeeId),
+    );
+    const presentCount = filteredAtt.filter(
+      (a) => a.status === "PRESENT" || a.status === "LATE",
+    ).length;
+    const attendanceHealth =
+      filteredAtt.length > 0
+        ? Math.round((presentCount / filteredAtt.length) * 100)
+        : 100;
 
     // 5. Department Payroll Expenditure Breakdown
     const allDepartments = await db.select().from(departments);
     const deptBreakdown = allDepartments.map((dept) => {
-      const deptEmployees = filteredEmployees.filter((e) => e.departmentId === dept.id);
-      const deptPayslips = allPayslips.filter((p) => deptEmployees.some((e) => e.id === p.employeeId));
-      const totalSalary = deptPayslips.reduce((sum, p) => sum + parseFloat(p.netSalary), 0);
+      const deptEmployees = filteredEmployees.filter(
+        (e) => e.departmentId === dept.id,
+      );
+      const deptPayslips = allPayslips.filter((p) =>
+        deptEmployees.some((e) => e.id === p.employeeId),
+      );
+      const totalSalary = deptPayslips.reduce(
+        (sum, p) => sum + parseFloat(p.netSalary),
+        0,
+      );
 
       return {
         id: dept.id,
@@ -111,7 +136,10 @@ export async function getDashboardMetrics(filters?: {
     const allRuns = await db.select().from(payruns).orderBy(payruns.startDate);
     const monthlyTrends = allRuns.map((r) => {
       const runSlips = allPayslips.filter((p) => p.payrunId === r.id);
-      const totalNet = runSlips.reduce((sum, p) => sum + parseFloat(p.netSalary), 0);
+      const totalNet = runSlips.reduce(
+        (sum, p) => sum + parseFloat(p.netSalary),
+        0,
+      );
       return {
         month: r.name,
         totalNet,
@@ -121,13 +149,17 @@ export async function getDashboardMetrics(filters?: {
     // 7. Operational Alerts
     const alerts: string[] = [];
     const missingBank = filteredEmployees.filter(
-      (e) => !e.bankAccountNumber || e.bankAccountNumber.trim() === ""
+      (e) => !e.bankAccountNumber || e.bankAccountNumber.trim() === "",
     );
     if (missingBank.length > 0) {
-      alerts.push(`${missingBank.length} employees missing bank account details`);
+      alerts.push(
+        `${missingBank.length} employees missing bank account details`,
+      );
     }
     if (pendingApprovalsCount > 0) {
-      alerts.push(`${pendingApprovalsCount} time off requests awaiting manager approval`);
+      alerts.push(
+        `${pendingApprovalsCount} time off requests awaiting manager approval`,
+      );
     }
     const warningSlips = allPayslips.filter((p) => p.hasWarnings).length;
     if (warningSlips > 0) {
