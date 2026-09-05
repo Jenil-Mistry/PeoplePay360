@@ -29,3 +29,8 @@ yarn-error.log*
 
 # vercel
 .vercel
+
+# documentation & agent configurations
+doc/
+.agents/
+AGENTS.md/
