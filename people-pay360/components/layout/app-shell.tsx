@@ -119,8 +119,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="h-screen h-[100dvh] bg-background text-foreground flex flex-col overflow-hidden antialiased">
       {/* Top Header */}
-      <header className="shrink-0 z-40 h-14 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-6">
-        <div className="flex items-center gap-3">
+      <header className="shrink-0 z-40 h-14 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between pl-2 sm:pl-2.5 pr-4 sm:pr-6">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
             className="hidden md:flex p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
