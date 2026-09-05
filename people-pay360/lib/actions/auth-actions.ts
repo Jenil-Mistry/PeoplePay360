@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { employees, departments } from "@/lib/db/schema";
+import { employees, departments, passwordResetTokens } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { signIn, auth } from "@/lib/auth";
@@ -112,36 +112,73 @@ export async function signInUser(data: { email: string; password: string }) {
   }
 }
 
-/* ── Forgot Password (Reset by Admin) ─────────────────────── */
+/* ── Forgot Password (Token-Based Email Recovery) ─────────────────────── */
 
-export async function resetPassword(data: {
-  employeeEmail: string;
+import crypto from "crypto";
+
+export async function requestPasswordReset(email: string) {
+  try {
+    const [employee] = await db
+      .select({ id: employees.id, email: employees.email })
+      .from(employees)
+      .where(eq(employees.email, email.toLowerCase().trim()))
+      .limit(1);
+
+    if (!employee) {
+      // Return success anyway to prevent email enumeration
+      return { success: true };
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour from now
+
+    await db.insert(passwordResetTokens).values({
+      email: employee.email,
+      token,
+      expiresAt,
+    });
+
+    // In a real application, send the token via email here.
+    // e.g., sendEmail(employee.email, `https://.../reset-password?token=${token}`)
+    console.log(`[DEV MODE] Password reset token for ${employee.email}: ${token}`);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Password reset request error:", error);
+    return { error: "An unexpected error occurred. Please try again." };
+  }
+}
+
+export async function resetPasswordWithToken(data: {
+  token: string;
   newPassword: string;
 }) {
   try {
-    // Validate new password
+    const [resetRecord] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.token, data.token))
+      .limit(1);
+
+    if (!resetRecord || resetRecord.expiresAt < new Date()) {
+      return { error: "Invalid or expired password reset token." };
+    }
+
     const validation = validatePassword(data.newPassword);
     if (!validation.valid) {
       return { error: validation.errors.join(". ") };
     }
 
-    // Find employee
-    const [employee] = await db
-      .select({ id: employees.id })
-      .from(employees)
-      .where(eq(employees.email, data.employeeEmail.toLowerCase().trim()))
-      .limit(1);
-
-    if (!employee) {
-      return { error: "No account found with this email address." };
-    }
-
-    // Update password
     const passwordHash = await bcrypt.hash(data.newPassword, 12);
     await db
       .update(employees)
       .set({ passwordHash })
-      .where(eq(employees.id, employee.id));
+      .where(eq(employees.email, resetRecord.email));
+
+    // Delete token after successful use
+    await db
+      .delete(passwordResetTokens)
+      .where(eq(passwordResetTokens.token, data.token));
 
     return { success: true };
   } catch (error) {

@@ -15,6 +15,7 @@ import { eq, and, like, or, sql, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { canAccessModule } from "@/lib/rbac";
+import { requireReadAccess, requireWriteAccess } from "./auth-helpers";
 
 export async function getEmployees(filters?: {
   departmentId?: number;
@@ -22,16 +23,16 @@ export async function getEmployees(filters?: {
   search?: string;
 }) {
   try {
-    const session = await auth();
-    if (!session?.user) throw new Error("Unauthorized");
-    if (
-      !canAccessModule(session.user.role, "employees") &&
-      !canAccessModule(session.user.role, "employees_own")
-    ) {
-      throw new Error("Forbidden: Insufficient permissions to view employees");
-    }
+    const user = await requireReadAccess("employees");
+    
+    // For "employees_own" we'll filter in the query if they don't have global access
+    const canViewAll = canAccessModule(user.role, "employees");
 
     const conditions = [];
+
+    if (!canViewAll) {
+      conditions.push(eq(employees.id, user.employeeDbId));
+    }
 
     if (filters?.departmentId) {
       conditions.push(eq(employees.departmentId, filters.departmentId));
@@ -91,26 +92,33 @@ export async function getEmployees(filters?: {
 
 export async function getEmployeeById(id: number | string) {
   try {
-    const session = await auth();
-    if (!session?.user) throw new Error("Unauthorized");
+    const user = await requireReadAccess("employees");
 
     // Check basic access
-    const canViewAll = canAccessModule(session.user.role, "employees");
-    const canViewOwn = canAccessModule(session.user.role, "employees_own");
-
-    if (!canViewAll && !canViewOwn) {
-      throw new Error("Forbidden: Insufficient permissions");
-    }
+    const canViewAll = canAccessModule(user.role, "employees");
+    const canViewOwn = canAccessModule(user.role, "employees_own");
 
     let condition;
-    if (typeof id === "number") {
-      condition = eq(employees.id, id);
+    if (!canViewAll) {
+      // Must only query their own ID
+      condition = eq(employees.id, user.employeeDbId);
+      // Validate that the requested ID matches their own
+      if (typeof id === "number" && id !== user.employeeDbId) {
+        throw new Error("Forbidden: Insufficient permissions");
+      }
+      if (typeof id === "string" && id !== user.id && parseInt(id.replace(/\D/g, ""), 10) !== user.employeeDbId) {
+        throw new Error("Forbidden: Insufficient permissions");
+      }
     } else {
-      const parsed = parseInt(id.replace(/\D/g, ""), 10);
-      condition = or(
-        eq(employees.empId, id),
-        !isNaN(parsed) ? eq(employees.id, parsed) : undefined,
-      );
+      if (typeof id === "number") {
+        condition = eq(employees.id, id);
+      } else {
+        const parsed = parseInt(id.replace(/\D/g, ""), 10);
+        condition = or(
+          eq(employees.empId, id),
+          !isNaN(parsed) ? eq(employees.id, parsed) : undefined,
+        );
+      }
     }
 
     const [emp] = await db
@@ -149,24 +157,28 @@ export async function getEmployeeById(id: number | string) {
 
 export async function getEmployeeSmartCounts(employeeId: number | string) {
   try {
-    const session = await auth();
-    if (!session?.user) throw new Error("Unauthorized");
-    if (
-      !canAccessModule(session.user.role, "employees") &&
-      !canAccessModule(session.user.role, "employees_own")
-    ) {
-      throw new Error("Forbidden: Insufficient permissions");
-    }
+    const user = await requireReadAccess("employees");
+    const canViewAll = canAccessModule(user.role, "employees");
 
     let numericId: number;
-    if (typeof employeeId === "number") {
-      numericId = employeeId;
+    if (!canViewAll) {
+      numericId = user.employeeDbId;
+      if (typeof employeeId === "number" && employeeId !== user.employeeDbId) {
+        throw new Error("Forbidden: Insufficient permissions");
+      }
+      if (typeof employeeId === "string" && employeeId !== user.id && parseInt(employeeId.replace(/\D/g, ""), 10) !== user.employeeDbId) {
+        throw new Error("Forbidden: Insufficient permissions");
+      }
     } else {
-      const [emp] = await db
-        .select({ id: employees.id })
-        .from(employees)
-        .where(eq(employees.empId, employeeId));
-      numericId = emp?.id || parseInt(employeeId.replace(/\D/g, ""), 10) || 1;
+      if (typeof employeeId === "number") {
+        numericId = employeeId;
+      } else {
+        const [emp] = await db
+          .select({ id: employees.id })
+          .from(employees)
+          .where(eq(employees.empId, employeeId));
+        numericId = emp?.id || parseInt(employeeId.replace(/\D/g, ""), 10) || 1;
+      }
     }
 
     const [contractCount] = await db
@@ -235,13 +247,7 @@ export async function createEmployee(data: {
   };
 }) {
   try {
-    const session = await auth();
-    if (!session?.user) throw new Error("Unauthorized");
-    if (!canAccessModule(session.user.role, "employees")) {
-      throw new Error(
-        "Forbidden: Only HR Managers or Admins can create employees",
-      );
-    }
+    const user = await requireWriteAccess("employees");
 
     const allDepts = await db.select().from(departments);
     let resolvedDeptId = data.departmentId;
@@ -364,13 +370,7 @@ export async function updateEmployee(
   }>,
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) throw new Error("Unauthorized");
-    if (!canAccessModule(session.user.role, "employees")) {
-      throw new Error(
-        "Forbidden: Insufficient permissions to modify employees",
-      );
-    }
+    const user = await requireWriteAccess("employees");
 
     let condition;
     if (typeof id === "number") {
@@ -451,13 +451,7 @@ export async function updateEmployee(
 
 export async function deleteEmployee(id: number | string) {
   try {
-    const session = await auth();
-    if (!session?.user) throw new Error("Unauthorized");
-    if (!canAccessModule(session.user.role, "employees")) {
-      throw new Error(
-        "Forbidden: Insufficient permissions to delete employees",
-      );
-    }
+    const user = await requireWriteAccess("employees");
 
     let condition;
     if (typeof id === "number") {

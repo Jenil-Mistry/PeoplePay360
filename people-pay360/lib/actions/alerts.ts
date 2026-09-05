@@ -13,7 +13,8 @@ import {
   payslipWarnings,
 } from "@/lib/db/schema";
 import { eq, and, sql, desc, gte, lte, isNull } from "drizzle-orm";
-import { getAuthenticatedUser } from "./auth-helpers";
+import { requireReadAccess } from "./auth-helpers";
+import { canAccessModule } from "@/lib/rbac";
 
 /* ================================================================
    Shared Typed OperationalAlert Model (Plan Section 2)
@@ -48,9 +49,14 @@ export interface OperationalAlert {
  * Used for both the dashboard card and the notification bell.
  */
 export async function getOperationalAlerts(): Promise<OperationalAlert[]> {
-  const user = await getAuthenticatedUser();
+  const user = await requireReadAccess("dashboard");
+  const canViewAll = canAccessModule(user.role, "employees");
   const alerts: OperationalAlert[] = [];
   const now = new Date().toISOString();
+
+  if (!canViewAll) {
+    return alerts; // Employees do not see operational alerts for now
+  }
 
   // 1. Employees missing bank information
   const missingBank = await db

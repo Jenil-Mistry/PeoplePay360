@@ -17,10 +17,12 @@ import { eq, and, desc, sql, inArray, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { computeEmployeePayroll } from "@/lib/payroll-server-engine";
 import { getActiveContractForPeriod } from "./contracts";
-import { getAuthenticatedUser, requireWriteAccess, requireReadAccess } from "./auth-helpers";
+import { requireWriteAccess, requireReadAccess } from "./auth-helpers";
+import { canAccessModule } from "@/lib/rbac";
 
 export async function getSalaryStructures() {
   try {
+    await requireReadAccess("payroll_structures_rules");
     const structures = await db.select().from(salaryStructures);
     const rules = await db.select().from(salaryRules);
 
@@ -39,6 +41,7 @@ export async function createSalaryStructure(data: {
   notes?: string;
 }) {
   try {
+    await requireWriteAccess("payroll_structures_rules");
     const [struct] = await db
       .insert(salaryStructures)
       .values({
@@ -64,6 +67,7 @@ export async function createSalaryStructure(data: {
 
 export async function getSalaryRules(structureId?: number | string) {
   try {
+    await requireReadAccess("payroll_structures_rules");
     const rawId =
       typeof structureId === "string"
         ? parseInt(structureId.replace(/\D/g, ""), 10)
@@ -109,6 +113,7 @@ export async function createSalaryRule(data: {
   formula?: string;
 }) {
   try {
+    await requireWriteAccess("payroll_structures_rules");
     let resolvedStructId = 1;
     if (data.structureId) {
       resolvedStructId =
@@ -221,6 +226,7 @@ export async function updateSalaryRule(
   }>,
 ) {
   try {
+    await requireWriteAccess("payroll_structures_rules");
     const rawId =
       typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
 
@@ -300,6 +306,7 @@ export async function getEligibleEmployeesForPayrun(
   periodEnd: string,
 ) {
   try {
+    await requireReadAccess("payroll_create_compute");
     const eligible = await db
       .select({
         id: employees.id,
@@ -347,6 +354,7 @@ export async function createPayrunBatch(data: {
   selectedEmployeeIds?: Array<number | string>;
 }) {
   try {
+    await requireWriteAccess("payroll_create_compute");
     const startDate =
       data.periodStart ||
       data.startDate ||
@@ -413,6 +421,7 @@ export async function computePayrunBatch(
   targetEmployeeIds?: Array<number | string>,
 ) {
   try {
+    await requireWriteAccess("payroll_create_compute");
     const rawRunId =
       typeof payrunId === "string"
         ? parseInt(payrunId.replace(/\D/g, ""), 10)
@@ -673,6 +682,7 @@ export async function markPayrunPaid(payrunId: number | string) {
 
 export async function sendPayslipsBulk(payrunId: number | string) {
   try {
+    await requireWriteAccess("payroll_validate_paid");
     const rawId =
       typeof payrunId === "string"
         ? parseInt(payrunId.replace(/\D/g, ""), 10)
@@ -706,6 +716,7 @@ export async function sendPayslipsBulk(payrunId: number | string) {
 
 export async function getPayruns() {
   try {
+    await requireReadAccess("payroll_view");
     const runs = await db
       .select({
         id: payruns.id,
@@ -749,6 +760,7 @@ export async function getPayruns() {
 
 export async function getPayrunById(id: number | string) {
   try {
+    await requireReadAccess("payroll_view");
     const rawId =
       typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
 
@@ -808,6 +820,7 @@ export async function getPayrunById(id: number | string) {
 
 export async function getPayslipDetail(id: number | string) {
   try {
+    const user = await requireReadAccess("payroll_own_payslip");
     const rawId =
       typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
 
@@ -845,6 +858,10 @@ export async function getPayslipDetail(id: number | string) {
       .where(eq(payslips.id, rawId));
 
     if (!ps) return null;
+
+    if (!canAccessModule(user.role, "payroll_view") && ps.employeeId !== user.employeeDbId) {
+      throw new Error("Forbidden: Insufficient permissions");
+    }
 
     const lines = await db
       .select()

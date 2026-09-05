@@ -15,6 +15,13 @@
       "when": 1788650785570,
       "tag": "0001_glamorous_devos",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1788651612282,
+      "tag": "0002_watery_silk_fever",
+      "breakpoints": true
     }
   ]
 }

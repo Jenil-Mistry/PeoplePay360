@@ -11,7 +11,8 @@ import {
   payslips,
 } from "@/lib/db/schema";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
-import { getAuthenticatedUser } from "./auth-helpers";
+import { requireReadAccess } from "./auth-helpers";
+import { canAccessModule } from "@/lib/rbac";
 
 export async function getDashboardMetrics(filters?: {
   departmentId?: number;
@@ -19,10 +20,14 @@ export async function getDashboardMetrics(filters?: {
   payrunId?: number;
 }) {
   try {
-    const user = await getAuthenticatedUser();
+    const user = await requireReadAccess("dashboard");
+    const canViewAll = canAccessModule(user.role, "employees");
 
     // 1. Resolve filtered employees
     const empConditions = [];
+    if (!canViewAll) {
+      empConditions.push(eq(employees.id, user.employeeDbId));
+    }
     if (filters?.departmentId) {
       empConditions.push(eq(employees.departmentId, filters.departmentId));
     }
@@ -85,7 +90,7 @@ export async function getDashboardMetrics(filters?: {
       .filter(
         (r) =>
           r.status === "APPROVED" &&
-          (empIds.length === 0 || empIds.includes(r.employeeId)),
+          (empIds.length > 0 ? empIds.includes(r.employeeId) : true),
       )
       .reduce((sum, r) => sum + parseFloat(r.requestedUnits.toString()), 0);
 
@@ -98,7 +103,7 @@ export async function getDashboardMetrics(filters?: {
       .select({ status: attendance.status, employeeId: attendance.employeeId })
       .from(attendance);
     const filteredAtt = attRecords.filter(
-      (a) => empIds.length === 0 || empIds.includes(a.employeeId),
+      (a) => (empIds.length > 0 ? empIds.includes(a.employeeId) : true),
     );
     const presentCount = filteredAtt.filter(
       (a) => a.status === "PRESENT" || a.status === "LATE",

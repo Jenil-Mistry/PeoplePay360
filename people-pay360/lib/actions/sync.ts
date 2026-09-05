@@ -34,6 +34,9 @@ import {
   PayslipLineItem,
 } from "@/lib/types";
 
+import { getAuthenticatedUser } from "./auth-helpers";
+import { canAccessModule } from "@/lib/rbac";
+
 /**
  * Loads the complete, live system state from Neon Database
  * formatted for the PeoplePay360 application context.
@@ -52,6 +55,10 @@ export async function getInitialAppState(): Promise<{
   payslips: Payslip[];
 }> {
   try {
+    const user = await getAuthenticatedUser();
+    const canViewAll = canAccessModule(user.role, "employees");
+    const myId = user.employeeDbId;
+
     const [
       dbDepts,
       dbEmps,
@@ -70,18 +77,18 @@ export async function getInitialAppState(): Promise<{
       dbWarnings,
     ] = await Promise.all([
       db.select().from(departments),
-      db.select().from(employees),
-      db.select().from(contracts),
+      db.select().from(employees).where(canViewAll ? undefined : eq(employees.id, myId)),
+      db.select().from(contracts).where(canViewAll ? undefined : eq(contracts.employeeId, myId)),
       db.select().from(workingSchedules),
       db.select().from(workingScheduleLines),
-      db.select().from(attendance).orderBy(desc(attendance.date)),
+      db.select().from(attendance).where(canViewAll ? undefined : eq(attendance.employeeId, myId)).orderBy(desc(attendance.date)),
       db.select().from(timeOffTypes),
-      db.select().from(timeOffAllocations),
-      db.select().from(timeOffRequests),
+      db.select().from(timeOffAllocations).where(canViewAll ? undefined : eq(timeOffAllocations.employeeId, myId)),
+      db.select().from(timeOffRequests).where(canViewAll ? undefined : eq(timeOffRequests.employeeId, myId)),
       db.select().from(salaryStructures),
       db.select().from(salaryRules).orderBy(salaryRules.sequence),
       db.select().from(payruns).orderBy(desc(payruns.startDate)),
-      db.select().from(payslips),
+      db.select().from(payslips).where(canViewAll ? undefined : eq(payslips.employeeId, myId)),
       db.select().from(payslipLines),
       db.select().from(payslipWarnings),
     ]);

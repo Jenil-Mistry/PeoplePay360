@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 
-const publicRoutes = ["/", "/sign-in", "/sign-up", "/forgot-password"];
+const publicRoutes = ["/", "/sign-in", "/sign-up", "/forgot-password", "/reset-password"];
 const authApiPrefix = "/api/auth";
 
 export default auth((req) => {
@@ -41,6 +41,29 @@ export default auth((req) => {
     const signInUrl = new URL("/sign-in", req.nextUrl);
     signInUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(signInUrl);
+  }
+
+  const role = (req.auth as any)?.user?.role || "EMPLOYEE";
+
+  // Route-based RBAC enforcement
+  // Reports: PAYROLL_MANAGER and ADMIN only
+  if (pathname.startsWith("/reports")) {
+    if (role !== "PAYROLL_MANAGER" && role !== "ADMIN") {
+      return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
+    }
+  }
+
+  // Payroll (except payslips): PAYROLL_USER, PAYROLL_MANAGER, ADMIN
+  if (
+    pathname.startsWith("/payroll") &&
+    !pathname.startsWith("/payroll/payslips")
+  ) {
+    if (
+      role === "EMPLOYEE" ||
+      role === "HR_MANAGER"
+    ) {
+      return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
+    }
   }
 
   return NextResponse.next();

@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { attendance, employees, workingSchedules, workingScheduleLines } from "@/lib/db/schema";
 import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { canAccessModule } from "@/lib/rbac";
 import { getAuthenticatedUser, requireReadAccess } from "./auth-helpers";
 import { hasWriteAccess, hasReadAccess } from "@/lib/rbac";
 
@@ -14,6 +15,9 @@ export async function getAttendanceRecords(filters?: {
   endDate?: string;
 }) {
   try {
+    const user = await requireReadAccess("attendance_own");
+    const canViewAll = canAccessModule(user.role, "attendance_all");
+
     let resolvedEmpId: number | undefined;
     if (filters?.employeeId) {
       if (typeof filters.employeeId === "number") {
@@ -32,6 +36,13 @@ export async function getAttendanceRecords(filters?: {
 
     if (resolvedEmpId) {
       conditions.push(eq(attendance.employeeId, resolvedEmpId));
+    } else if (!canViewAll) {
+      conditions.push(eq(attendance.employeeId, user.employeeDbId));
+    }
+    
+    // RBAC Enforce
+    if (!canViewAll && resolvedEmpId && resolvedEmpId !== user.employeeDbId) {
+      throw new Error("Forbidden: Insufficient permissions");
     }
     if (filters?.date) {
       conditions.push(eq(attendance.date, filters.date));
@@ -371,7 +382,13 @@ export async function getAttendanceHealthMetrics(
   endDate?: string,
 ) {
   try {
+    const user = await requireReadAccess("attendance_own");
+    const canViewAll = canAccessModule(user.role, "attendance_all");
+
     const conditions = [];
+    if (!canViewAll) {
+      conditions.push(eq(attendance.employeeId, user.employeeDbId));
+    }
     if (startDate) conditions.push(gte(attendance.date, startDate));
     if (endDate) conditions.push(lte(attendance.date, endDate));
 

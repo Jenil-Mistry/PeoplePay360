@@ -9,7 +9,7 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { getAuthenticatedUser, requireWriteAccess } from "./auth-helpers";
+import { requireReadAccess, requireWriteAccess } from "./auth-helpers";
 import { hasWriteAccess, hasReadAccess, canApproveTimeOff } from "@/lib/rbac";
 
 export async function getTimeOffTypes() {
@@ -26,7 +26,7 @@ export async function getTimeOffTypes() {
 
 export async function getTimeOffAllocations(employeeId?: number | string) {
   try {
-    const currentUser = await getAuthenticatedUser();
+    const currentUser = await requireReadAccess("time_off_own");
     
     let resolvedEmpId: number | undefined;
     if (employeeId) {
@@ -158,7 +158,7 @@ export async function getTimeOffRequests(filters?: {
   status?: "DRAFT" | "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
 }) {
   try {
-    const currentUser = await getAuthenticatedUser();
+    const currentUser = await requireReadAccess("time_off_own");
     
     let resolvedEmpId: number | undefined;
     if (filters?.employeeId) {
@@ -238,7 +238,7 @@ export async function createTimeOffRequest(data: {
   allocationId?: number | string;
 }) {
   try {
-    const currentUser = await getAuthenticatedUser();
+    const currentUser = await requireWriteAccess("time_off_own");
 
     let resolvedEmpId: number;
     if (typeof data.employeeId === "number") {
