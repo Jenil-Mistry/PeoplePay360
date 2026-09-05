@@ -102,6 +102,7 @@ async function seed() {
         sequence: 10,
         computationType: "PERCENTAGE" as const,
         percentage: "50.00",
+        baseCode: "WAGE",
       },
       {
         structureId: regularStructId,
@@ -111,6 +112,7 @@ async function seed() {
         sequence: 20,
         computationType: "PERCENTAGE" as const,
         percentage: "25.00",
+        baseCode: "BASIC",
       },
       {
         structureId: regularStructId,

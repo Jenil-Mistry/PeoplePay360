@@ -232,7 +232,7 @@ function ContractsContent() {
                 onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
                 className="h-9 w-full rounded-lg border border-border bg-background px-3 py-1 text-sm disabled:opacity-60"
               >
-                {employees.map((emp) => (
+                {employees.filter(emp => emp.role !== "ADMIN").map((emp) => (
                   <option key={emp.id} value={emp.id}>
                     {emp.name} ({emp.department} • {emp.jobPosition})
                   </option>

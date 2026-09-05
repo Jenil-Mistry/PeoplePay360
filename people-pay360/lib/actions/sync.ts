@@ -104,6 +104,7 @@ export async function getInitialAppState(): Promise<{
         managerId: manager ? (manager.empId || `EMP-${manager.id}`) : undefined,
         managerName: manager ? manager.name : undefined,
         scheduleId: `SCH-${e.workingScheduleId || 1}`,
+        role: e.role,
         status: e.isActive ? "Active" : "Inactive",
         company: "PeoplePay360 Technologies Pvt Ltd",
         workLocation: "Mumbai",
