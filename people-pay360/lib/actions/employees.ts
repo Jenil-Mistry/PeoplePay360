@@ -13,6 +13,8 @@ import {
 } from "@/lib/db/schema";
 import { eq, and, like, or, sql, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/lib/auth";
+import { canAccessModule } from "@/lib/rbac";
 
 export async function getEmployees(filters?: {
   departmentId?: number;
@@ -20,6 +22,12 @@ export async function getEmployees(filters?: {
   search?: string;
 }) {
   try {
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+    if (!canAccessModule(session.user.role, "employees") && !canAccessModule(session.user.role, "employees_own")) {
+      throw new Error("Forbidden: Insufficient permissions to view employees");
+    }
+
     const conditions = [];
 
     if (filters?.departmentId) {
@@ -77,6 +85,17 @@ export async function getEmployees(filters?: {
 
 export async function getEmployeeById(id: number | string) {
   try {
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+    
+    // Check basic access
+    const canViewAll = canAccessModule(session.user.role, "employees");
+    const canViewOwn = canAccessModule(session.user.role, "employees_own");
+    
+    if (!canViewAll && !canViewOwn) {
+      throw new Error("Forbidden: Insufficient permissions");
+    }
+
     let condition;
     if (typeof id === "number") {
       condition = eq(employees.id, id);
@@ -118,6 +137,12 @@ export async function getEmployeeById(id: number | string) {
 
 export async function getEmployeeSmartCounts(employeeId: number | string) {
   try {
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+    if (!canAccessModule(session.user.role, "employees") && !canAccessModule(session.user.role, "employees_own")) {
+      throw new Error("Forbidden: Insufficient permissions");
+    }
+
     let numericId: number;
     if (typeof employeeId === "number") {
       numericId = employeeId;
@@ -182,6 +207,12 @@ export async function createEmployee(data: {
   };
 }) {
   try {
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+    if (!canAccessModule(session.user.role, "employees")) {
+      throw new Error("Forbidden: Only HR Managers or Admins can create employees");
+    }
+
     const allDepts = await db.select().from(departments);
     let resolvedDeptId = data.departmentId;
 
@@ -281,6 +312,12 @@ export async function updateEmployee(
   }>
 ) {
   try {
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+    if (!canAccessModule(session.user.role, "employees")) {
+      throw new Error("Forbidden: Insufficient permissions to modify employees");
+    }
+
     let condition;
     if (typeof id === "number") {
       condition = eq(employees.id, id);
@@ -346,6 +383,12 @@ export async function updateEmployee(
 
 export async function deleteEmployee(id: number | string) {
   try {
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+    if (!canAccessModule(session.user.role, "employees")) {
+      throw new Error("Forbidden: Insufficient permissions to delete employees");
+    }
+
     let condition;
     if (typeof id === "number") {
       condition = eq(employees.id, id);

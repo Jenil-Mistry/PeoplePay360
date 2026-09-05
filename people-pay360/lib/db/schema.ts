@@ -141,7 +141,8 @@ export const employees = pgTable("employees", {
   empId: varchar("emp_id", { length: 255 }).notNull().unique(), // Auth Provider Link
   name: varchar("name", { length: 50 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
-  role: roleEnum("role").default("EMPLOYEE").notNull(), // was defined, never used
+  passwordHash: varchar("password_hash", { length: 255 }),
+  role: roleEnum("role").default("EMPLOYEE").notNull(),
   departmentId: integer("department_id")
     .references(() => departments.id)
     .notNull(),

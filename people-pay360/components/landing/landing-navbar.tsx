@@ -174,7 +174,7 @@ export function LandingNavbar() {
           </a>
         </nav>
 
-        {/* Far Right: Theme Toggle + CTA Button */}
+        {/* Far Right: Theme Toggle + Auth Buttons */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={toggleTheme}
@@ -184,9 +184,15 @@ export function LandingNavbar() {
             {isDarkMode ? <Sun className="size-4" /> : <Moon className="size-4" />}
           </button>
 
-          <Link href="/dashboard">
+          <Link href="/sign-in">
+            <button className="h-9 sm:h-10 px-4 sm:px-5 rounded-full border border-border hover:bg-muted/70 text-foreground font-semibold text-xs tracking-wide transition-all duration-150 active:scale-95 whitespace-nowrap">
+              Sign In
+            </button>
+          </Link>
+
+          <Link href="/sign-up">
             <button className="h-9 sm:h-10 px-4 sm:px-5 rounded-full bg-primary hover:bg-primary/90 text-primary-foreground font-bold text-xs tracking-wide shadow-sm flex items-center gap-1.5 transition-all duration-150 active:scale-95 whitespace-nowrap">
-              <span>Launch Live App</span>
+              <span>Get Started</span>
               <ArrowRight className="size-3.5" />
             </button>
           </Link>
@@ -207,11 +213,19 @@ export function LandingNavbar() {
         <div className="md:hidden border-t border-border/60 bg-card/98 backdrop-blur-2xl px-4 py-4 space-y-4 animate-in fade-in slide-in-from-top-1 duration-150">
           <div className="flex flex-col gap-1">
             <Link
-              href="/dashboard"
+              href="/sign-in"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center justify-between p-3 rounded-xl text-xs font-bold text-foreground bg-muted/50 hover:bg-muted transition-colors"
+            >
+              <span>Sign In</span>
+              <ArrowRight className="size-4" />
+            </Link>
+            <Link
+              href="/sign-up"
               onClick={() => setMobileOpen(false)}
               className="flex items-center justify-between p-3 rounded-xl text-xs font-bold text-primary bg-primary/10 hover:bg-primary/15 transition-colors"
             >
-              <span>Launch Dashboard</span>
+              <span>Get Started</span>
               <ArrowRight className="size-4" />
             </Link>
             <a

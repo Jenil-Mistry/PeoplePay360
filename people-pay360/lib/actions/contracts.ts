@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { contracts, employees, departments, salaryStructures, workingSchedules } from "@/lib/db/schema";
 import { eq, and, lte, gte, or, isNull, sql, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { auth } from "@/lib/auth";
+import { canAccessModule } from "@/lib/rbac";
 
 export async function getContracts(filters?: {
   employeeId?: number | string;
@@ -11,6 +13,16 @@ export async function getContracts(filters?: {
   departmentId?: number;
 }) {
   try {
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+    
+    const canViewAll = canAccessModule(session.user.role, "contracts");
+    const canViewOwn = canAccessModule(session.user.role, "contracts_own");
+    
+    if (!canViewAll && !canViewOwn) {
+      throw new Error("Forbidden: Insufficient permissions");
+    }
+
     let resolvedEmpId: number | undefined;
     if (filters?.employeeId) {
       if (typeof filters.employeeId === "number") {
@@ -22,7 +34,12 @@ export async function getContracts(filters?: {
     }
 
     const conditions = [];
-    if (resolvedEmpId) conditions.push(eq(contracts.employeeId, resolvedEmpId));
+    if (resolvedEmpId) {
+      conditions.push(eq(contracts.employeeId, resolvedEmpId));
+    } else if (!canViewAll) {
+      // Force own contracts only if no employeeId provided and can't view all
+      conditions.push(eq(contracts.employeeId, session.user.employeeDbId));
+    }
     if (filters?.status) conditions.push(eq(contracts.status, filters.status));
     if (filters?.departmentId) conditions.push(eq(contracts.departmentId, filters.departmentId));
 
@@ -66,6 +83,16 @@ export async function getContracts(filters?: {
 
 export async function getActiveContractForPeriod(employeeId: number, periodStart: string, periodEnd: string) {
   try {
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+    
+    const canViewAll = canAccessModule(session.user.role, "contracts");
+    const canViewOwn = canAccessModule(session.user.role, "contracts_own");
+    
+    if (!canViewAll && (!canViewOwn || session.user.employeeDbId !== employeeId)) {
+      throw new Error("Forbidden: Insufficient permissions");
+    }
+
     const result = await db
       .select()
       .from(contracts)
@@ -101,6 +128,12 @@ export async function createContract(data: {
   structureId?: string;
 }) {
   try {
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+    if (!canAccessModule(session.user.role, "contracts")) {
+      throw new Error("Forbidden: Insufficient permissions to create contracts");
+    }
+
     // 1. Resolve employee DB ID
     let resolvedEmpId: number;
     let empRecord;
@@ -205,6 +238,12 @@ export async function updateContract(
   }>
 ) {
   try {
+    const session = await auth();
+    if (!session?.user) throw new Error("Unauthorized");
+    if (!canAccessModule(session.user.role, "contracts")) {
+      throw new Error("Forbidden: Insufficient permissions to modify contracts");
+    }
+
     const rawId = typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
 
     const updates: Record<string, any> = {};

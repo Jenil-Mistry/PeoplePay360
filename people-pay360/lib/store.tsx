@@ -1,6 +1,7 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useMemo } from "react";
+import { useSession } from "next-auth/react";
 import {
   Employee,
   Contract,
@@ -55,13 +56,14 @@ export interface ActiveUser {
   avatarInitials: string;
 }
 
-export const AVAILABLE_USERS: ActiveUser[] = [
-  { id: "ADM-001", name: "Priya Nair", email: "admin@oxp.com", role: "ADMIN", jobPosition: "System Administrator & HR Director", avatarInitials: "PN" },
-  { id: "EMP-005", name: "Vikram Singh", email: "vikram@oxp.com", role: "PAYROLL_MANAGER", jobPosition: "Payroll Operations Manager", avatarInitials: "VS" },
-  { id: "EMP-001", name: "Aarav Mehta", email: "aarav@oxp.com", role: "PAYROLL_USER", jobPosition: "Payroll Specialist", avatarInitials: "AM" },
-  { id: "EMP-002", name: "Sara Khan", email: "sara@oxp.com", role: "HR_MANAGER", jobPosition: "HR Officer", avatarInitials: "SK" },
-  { id: "EMP-003", name: "John Dsouza", email: "john@oxp.com", role: "EMPLOYEE", jobPosition: "Lead Developer", avatarInitials: "JD" },
-];
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
 interface AppState {
   employees: Employee[];
@@ -77,9 +79,8 @@ interface AppState {
   payslips: Payslip[];
   isLoading: boolean;
 
-  // Active User / RBAC Context (Spec Section 3)
+  // Active User / RBAC Context (Session-based)
   currentUser: ActiveUser;
-  setCurrentUser: (user: ActiveUser) => void;
 
   // Database Refresh
   refreshData: () => Promise<void>;
@@ -125,7 +126,31 @@ interface AppState {
 const AppContext = createContext<AppState | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<ActiveUser>(AVAILABLE_USERS[0]);
+  const { data: session } = useSession();
+
+  // Derive currentUser from NextAuth session
+  const currentUser: ActiveUser = useMemo(() => {
+    if (session?.user) {
+      return {
+        id: (session.user as Record<string, unknown>).empId as string || session.user.id || "UNKNOWN",
+        name: session.user.name || "User",
+        email: session.user.email || "",
+        role: ((session.user as Record<string, unknown>).role as UserRole) || "EMPLOYEE",
+        jobPosition: "Employee",
+        avatarInitials: getInitials(session.user.name || "U"),
+      };
+    }
+    // Fallback for unauthenticated / loading state
+    return {
+      id: "GUEST",
+      name: "Guest",
+      email: "",
+      role: "EMPLOYEE" as UserRole,
+      jobPosition: "",
+      avatarInitials: "G",
+    };
+  }, [session]);
+
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [schedules, setSchedules] = useState<WorkingSchedule[]>([]);
@@ -448,7 +473,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         payslips,
         isLoading,
         currentUser,
-        setCurrentUser,
         refreshData,
         addEmployee,
         updateEmployee,
