@@ -22,6 +22,7 @@ import {
 import { useAppStore } from "@/lib/store";
 import { AttendanceRecord, AttendanceStatus } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { hasWriteAccess } from "@/lib/rbac";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -77,15 +78,34 @@ function AttendanceContent() {
   // Today's ISO date string (YYYY-MM-DD)
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
 
+  // RBAC: Can this user manage other employees' attendance?
+  const canManageOthers = hasWriteAccess(currentUser.role, "attendance_correct_others");
+
+  // Find the employee record matching the currently logged-in user
+  const currentUserEmployee = useMemo(() => {
+    return employees.find((e) => e.id === currentUser.id || e.workEmail === currentUser.email);
+  }, [employees, currentUser]);
+
   // Active Employee selected for Live Punch Bar
   const [activePunchEmpId, setActivePunchEmpId] = useState<string>("");
 
   useEffect(() => {
-    if (!activePunchEmpId && employees.length > 0) {
-      const match = employees.find((e) => e.id === currentUser.id || e.workEmail === currentUser.email);
-      setActivePunchEmpId(match ? match.id : employees[0].id);
+    if (employees.length > 0) {
+      if (canManageOthers) {
+        // HR/Admin: default to own employee but allow changing
+        if (!activePunchEmpId) {
+          const match = employees.find((e) => e.id === currentUser.id || e.workEmail === currentUser.email);
+          setActivePunchEmpId(match ? match.id : employees[0].id);
+        }
+      } else {
+        // Regular employees: always locked to their own record
+        const match = employees.find((e) => e.id === currentUser.id || e.workEmail === currentUser.email);
+        if (match) {
+          setActivePunchEmpId(match.id);
+        }
+      }
     }
-  }, [employees, currentUser, activePunchEmpId]);
+  }, [employees, currentUser, activePunchEmpId, canManageOthers]);
 
   // Today's attendance record for the active punch employee
   const activeEmpRecordToday = useMemo(() => {
@@ -216,7 +236,8 @@ function AttendanceContent() {
   };
 
   const handleCreateNew = () => {
-    const defaultEmp = employees[0];
+    // For regular employees, default to their own record; for HR/Admin, allow choosing
+    const defaultEmp = canManageOthers ? employees[0] : currentUserEmployee || employees[0];
     const nowStr = `${String(currentTime.getHours()).padStart(2, "0")}:${String(
       currentTime.getMinutes()
     ).padStart(2, "0")}`;
@@ -306,6 +327,17 @@ function AttendanceContent() {
 
   // 1-Click Check Out directly from any row in the attendance table
   const handleRowCheckOut = (rec: AttendanceRecord) => {
+    // Only allow checkout for own records (or if user has attendance_correct_others permission)
+    const isOwnRecord = currentUserEmployee && rec.employeeId === currentUserEmployee.id;
+    if (!isOwnRecord && !canManageOthers) {
+      toast({
+        title: "Permission Denied",
+        description: "You can only check out your own attendance.",
+        type: "error",
+      });
+      return;
+    }
+
     const timeStr = `${String(currentTime.getHours()).padStart(2, "0")}:${String(
       currentTime.getMinutes()
     ).padStart(2, "0")}`;
@@ -486,17 +518,26 @@ function AttendanceContent() {
               <label className="text-xs text-muted-foreground font-semibold hidden sm:inline">
                 Employee:
               </label>
-              <select
-                value={activePunchEmpId}
-                onChange={(e) => setActivePunchEmpId(e.target.value)}
-                className="h-9 rounded-lg border border-border bg-background px-3 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>
-                    {emp.name} ({emp.jobPosition})
-                  </option>
-                ))}
-              </select>
+              {canManageOthers ? (
+                /* HR/Admin: full dropdown to manage any employee */
+                <select
+                  value={activePunchEmpId}
+                  onChange={(e) => setActivePunchEmpId(e.target.value)}
+                  className="h-9 rounded-lg border border-border bg-background px-3 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-ring"
+                >
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>
+                      {emp.name} ({emp.jobPosition})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                /* Regular employees: locked to their own identity */
+                <div className="h-9 rounded-lg border border-border bg-muted/50 px-3 text-xs font-semibold flex items-center gap-2 text-foreground">
+                  <UserCheck className="size-3.5 text-primary" />
+                  {currentUserEmployee ? `${currentUserEmployee.name} (${currentUserEmployee.jobPosition})` : currentUser.name}
+                </div>
+              )}
             </div>
 
             {/* Smart Check-In / Check-Out Controls */}
@@ -635,18 +676,23 @@ function AttendanceContent() {
                     {rec.checkOut ? (
                       <span className="text-foreground">{rec.checkOut}</span>
                     ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleRowCheckOut(rec);
-                        }}
-                        className="border-amber-500/40 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-[10px] h-6 px-2 font-bold"
-                      >
-                        <LogOut className="size-3 mr-1" />
-                        Check Out
-                      </Button>
+                      /* Only show Check Out button for own records or HR/Admin */
+                      (canManageOthers || (currentUserEmployee && rec.employeeId === currentUserEmployee.id)) ? (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRowCheckOut(rec);
+                          }}
+                          className="border-amber-500/40 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 text-[10px] h-6 px-2 font-bold"
+                        >
+                          <LogOut className="size-3 mr-1" />
+                          Check Out
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground text-[10px]">—</span>
+                      )
                     )}
                   </td>
                   <td className="py-3.5 px-4 text-right font-mono font-bold text-foreground">
@@ -694,7 +740,7 @@ function AttendanceContent() {
                       }}
                       className="text-primary hover:underline font-semibold text-xs cursor-pointer"
                     >
-                      Audit
+                      {(canManageOthers || (currentUserEmployee && rec.employeeId === currentUserEmployee.id)) ? "Audit" : "View"}
                     </button>
                   </td>
                 </tr>
@@ -705,12 +751,17 @@ function AttendanceContent() {
       </div>
 
       {/* Attendance Form & Correction Modal */}
+      {(() => {
+        // Determine if this modal should be read-only
+        const isOwnRecord = isCreate || (selectedRecord && currentUserEmployee && selectedRecord.employeeId === currentUserEmployee.id);
+        const isModalReadOnly = !isCreate && !canManageOthers && !isOwnRecord;
+        return (
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-md" onClose={() => setIsModalOpen(false)}>
           <DialogHeader>
             <div className="flex items-center justify-between">
               <DialogTitle>
-                {isCreate ? "New Attendance Entry" : `Attendance / ${selectedRecord?.employeeName}`}
+                {isCreate ? "New Attendance Entry" : isModalReadOnly ? `Attendance / ${selectedRecord?.employeeName} (View Only)` : `Attendance / ${selectedRecord?.employeeName}`}
               </DialogTitle>
               {formData.status && (
                 <Badge
@@ -726,8 +777,14 @@ function AttendanceContent() {
                 </Badge>
               )}
             </div>
+            {isModalReadOnly && (
+              <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[11px] font-medium">
+                <ShieldCheck className="size-3.5 shrink-0" />
+                <span>You are viewing another employee&apos;s record. Only HR Managers and Admins can edit.</span>
+              </div>
+            )}
             <DialogDescription>
-              Status dynamically updates according to check-in time against the {scheduledShiftTime} shift window.
+              {isModalReadOnly ? "This record is read-only." : `Status dynamically updates according to check-in time against the ${scheduledShiftTime} shift window.`}
             </DialogDescription>
           </DialogHeader>
 
@@ -735,12 +792,12 @@ function AttendanceContent() {
             <div className="space-y-1">
               <label className="font-semibold text-muted-foreground">Employee</label>
               <select
-                disabled={!isCreate}
+                disabled={!isCreate || !canManageOthers}
                 value={formData.employeeId}
                 onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
                 className="h-9 w-full rounded-lg border border-border bg-background px-3 py-1 text-sm disabled:opacity-60"
               >
-                {employees.map((emp) => (
+                {(canManageOthers ? employees : employees.filter((emp) => emp.id === currentUserEmployee?.id)).map((emp) => (
                   <option key={emp.id} value={emp.id}>
                     {emp.name} ({emp.department})
                   </option>
@@ -752,6 +809,7 @@ function AttendanceContent() {
               <label className="font-semibold text-muted-foreground">Date</label>
               <Input
                 type="date"
+                disabled={isModalReadOnly}
                 value={formData.date || ""}
                 onChange={(e) => setFormData({ ...formData, date: e.target.value })}
               />
@@ -762,16 +820,19 @@ function AttendanceContent() {
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="font-semibold text-muted-foreground">Check In</label>
-                  <button
-                    type="button"
-                    onClick={setModalCheckInToNow}
-                    className="text-[10px] text-primary hover:underline font-bold cursor-pointer"
-                  >
-                    Set to Now
-                  </button>
+                  {!isModalReadOnly && (
+                    <button
+                      type="button"
+                      onClick={setModalCheckInToNow}
+                      className="text-[10px] text-primary hover:underline font-bold cursor-pointer"
+                    >
+                      Set to Now
+                    </button>
+                  )}
                 </div>
                 <Input
                   type="time"
+                  disabled={isModalReadOnly}
                   value={formData.checkIn || ""}
                   onChange={(e) => handleModalCheckInChange(e.target.value)}
                   className="font-mono"
@@ -781,16 +842,19 @@ function AttendanceContent() {
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="font-semibold text-muted-foreground">Check Out</label>
-                  <button
-                    type="button"
-                    onClick={setModalCheckOutToNow}
-                    className="text-[10px] text-primary hover:underline font-bold cursor-pointer"
-                  >
-                    Set to Now
-                  </button>
+                  {!isModalReadOnly && (
+                    <button
+                      type="button"
+                      onClick={setModalCheckOutToNow}
+                      className="text-[10px] text-primary hover:underline font-bold cursor-pointer"
+                    >
+                      Set to Now
+                    </button>
+                  )}
                 </div>
                 <Input
                   type="time"
+                  disabled={isModalReadOnly}
                   value={formData.checkOut || ""}
                   onChange={(e) => handleModalCheckOutChange(e.target.value)}
                   className="font-mono"
@@ -838,6 +902,7 @@ function AttendanceContent() {
                 <Input
                   type="number"
                   step="0.01"
+                  disabled={isModalReadOnly}
                   value={formData.workedHours ?? 0}
                   onChange={(e) =>
                     setFormData({ ...formData, workedHours: Number(e.target.value) })
@@ -851,6 +916,7 @@ function AttendanceContent() {
                 <Input
                   type="number"
                   step="0.01"
+                  disabled={isModalReadOnly}
                   value={formData.overtimeHours ?? 0}
                   onChange={(e) =>
                     setFormData({ ...formData, overtimeHours: Number(e.target.value) })
@@ -863,11 +929,12 @@ function AttendanceContent() {
             <div className="space-y-1">
               <label className="font-semibold text-muted-foreground">Status (Derived from Check-in)</label>
               <select
+                disabled={isModalReadOnly}
                 value={formData.status}
                 onChange={(e) =>
                   setFormData({ ...formData, status: e.target.value as AttendanceStatus })
                 }
-                className="h-9 w-full rounded-lg border border-border bg-background px-3 py-1 text-sm font-medium"
+                className="h-9 w-full rounded-lg border border-border bg-background px-3 py-1 text-sm font-medium disabled:opacity-60"
               >
                 <option value="Present">Present</option>
                 <option value="Late">Late</option>
@@ -880,10 +947,11 @@ function AttendanceContent() {
                 Audit Notes / Reason
               </label>
               <textarea
+                disabled={isModalReadOnly}
                 value={formData.notes || ""}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={2}
-                className="w-full rounded-lg border border-border bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
+                className="w-full rounded-lg border border-border bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-60"
                 placeholder="e.g. System clock punch, traffic delay, approved overtime..."
               />
             </div>
@@ -891,14 +959,18 @@ function AttendanceContent() {
 
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setIsModalOpen(false)}>
-              Cancel
+              {isModalReadOnly ? "Close" : "Cancel"}
             </Button>
-            <Button size="sm" onClick={handleSave} className="bg-primary text-primary-foreground font-bold">
-              {isCreate ? "Record Punch" : "Save Manual Edit"}
-            </Button>
+            {!isModalReadOnly && (
+              <Button size="sm" onClick={handleSave} className="bg-primary text-primary-foreground font-bold">
+                {isCreate ? "Record Punch" : "Save Manual Edit"}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
+        );
+      })()}
     </div>
   );
 }

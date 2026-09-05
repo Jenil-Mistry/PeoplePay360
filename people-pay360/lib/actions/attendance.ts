@@ -492,6 +492,7 @@ export async function recordCheckOut(data: {
   checkOutTime?: string;
   notes?: string;
 }) {
+  const currentUser = await getAuthenticatedUser();
   const dateStr = data.date || new Date().toISOString().split("T")[0];
   const now = new Date();
   const outTimeStr =
@@ -525,6 +526,11 @@ export async function recordCheckOut(data: {
     .select()
     .from(attendance)
     .where(eq(attendance.id, rawId));
+
+  // Enforce self-only checkout for non-HR/Admin users
+  if (existing && existing.employeeId !== currentUser.employeeDbId && !hasWriteAccess(currentUser.role, "attendance_correct_others")) {
+    return { success: false, error: "You can only check out your own attendance." };
+  }
 
   let workedHours = "0.00";
   let isOvertime = false;
