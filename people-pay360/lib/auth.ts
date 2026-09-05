@@ -6,6 +6,7 @@ import { employees } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "peoplepay360_auth_secret_key_jwt_session_2026_production_safe_token",
   session: { strategy: "jwt" },
   pages: {
     signIn: "/sign-in",
