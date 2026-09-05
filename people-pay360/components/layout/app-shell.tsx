@@ -492,18 +492,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
 
-          {/* Quick System Status Card at bottom */}
-          {sidebarOpen && (
-            <div className="p-3 m-2 rounded-xl bg-muted/50 border border-border/80 text-xs">
-              <div className="flex items-center gap-1.5 font-semibold text-foreground mb-1">
-                <Sparkles className="size-3.5 text-primary" />
-                <span>Operational Status</span>
-              </div>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Active payrun February 2026 validated. 8 payslips ready for disbursement.
-              </p>
-            </div>
-          )}
         </aside>
 
         {/* Mobile Navigation Drawer */}
