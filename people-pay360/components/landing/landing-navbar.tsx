@@ -78,10 +78,11 @@ export function LandingNavbar() {
     <header className="fixed top-4 sm:top-5 left-0 right-0 z-50 flex flex-col items-center px-3 sm:px-4 pointer-events-none">
       {/* Floating Capsule Bar */}
       <div
-        className={`pointer-events-auto w-full max-w-4xl flex items-center justify-between gap-2 sm:gap-4 p-1.5 sm:p-2 pl-2 sm:pl-2.5 pr-2 sm:pr-2.5 rounded-full border border-border/90 bg-card/95 backdrop-blur-xl shadow-lg transition-all duration-300 ${scrolled
-          ? "shadow-xl shadow-black/10 dark:shadow-black/40 border-primary/30"
-          : "shadow-md shadow-black/5"
-          }`}
+        className={`pointer-events-auto w-full max-w-4xl flex items-center justify-between gap-2 sm:gap-4 p-1.5 sm:p-2 pl-2 sm:pl-2.5 pr-2 sm:pr-2.5 rounded-full border border-border/90 bg-card/95 backdrop-blur-xl shadow-lg transition-all duration-300 ${
+          scrolled
+            ? "shadow-xl shadow-black/10 dark:shadow-black/40 border-primary/30 back backdrop-blur-xs backdrop-contrast-120"
+            : "shadow-md shadow-black/5 backdrop-blur-xs"
+        }`}
       >
         {/* Left Side: Circular Logo Mark */}
         <Link href="/" className="flex items-center gap-2.5 group shrink-0">
@@ -114,8 +115,9 @@ export function LandingNavbar() {
             >
               <span>Modules</span>
               <ChevronDown
-                className={`size-3 transition-transform duration-200 ${modulesOpen ? "rotate-180 text-primary" : ""
-                  }`}
+                className={`size-3 transition-transform duration-200 ${
+                  modulesOpen ? "rotate-180 text-primary" : ""
+                }`}
               />
             </button>
 
@@ -137,7 +139,9 @@ export function LandingNavbar() {
                           <Icon className="size-4" />
                         </div>
                         <div>
-                          <div className="text-xs font-bold text-foreground">{m.title}</div>
+                          <div className="text-xs font-bold text-foreground">
+                            {m.title}
+                          </div>
                           <div className="text-[11px] text-muted-foreground leading-none mt-0.5">
                             {m.desc}
                           </div>
@@ -177,7 +181,11 @@ export function LandingNavbar() {
             className="size-8 sm:size-9 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors"
             title="Toggle theme"
           >
-            {isDarkMode ? <Sun className="size-3.5" /> : <Moon className="size-3.5" />}
+            {isDarkMode ? (
+              <Sun className="size-3.5" />
+            ) : (
+              <Moon className="size-3.5" />
+            )}
           </button>
 
           <Link href="/dashboard">
@@ -192,7 +200,11 @@ export function LandingNavbar() {
             onClick={() => setMobileOpen(!mobileOpen)}
             className="md:hidden size-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/70"
           >
-            {mobileOpen ? <X className="size-4" /> : <Menu className="size-4" />}
+            {mobileOpen ? (
+              <X className="size-4" />
+            ) : (
+              <Menu className="size-4" />
+            )}
           </button>
         </div>
       </div>
