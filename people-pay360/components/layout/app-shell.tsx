@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useAppStore, AVAILABLE_USERS } from "@/lib/store";
 import { Badge } from "@/components/ui/badge";
+import { CommandPalette } from "./command-palette";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -35,6 +36,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [isMac, setIsMac] = useState(false);
+
+  useEffect(() => {
+    setIsMac(typeof window !== "undefined" && /(Mac|iPhone|iPod|iPad)/i.test(navigator.userAgent));
+  }, []);
+
+  // Global keyboard shortcut for Ctrl+K (Windows) and ⌘K (Mac)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Auto-expand submenus if current path matches
   useEffect(() => {
@@ -133,14 +152,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {/* Global Search & Action Area */}
         <div className="flex items-center gap-3">
-          <div className="relative hidden sm:block w-52 md:w-64">
-            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search employees, contracts... (⌘K)"
-              className="h-8 w-full rounded-lg border border-border bg-background pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-            />
-          </div>
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="relative hidden sm:flex items-center w-56 md:w-64 h-8 rounded-lg border border-border bg-background/80 hover:bg-muted/50 px-2.5 text-xs text-muted-foreground transition-all duration-150 group shadow-2xs hover:border-primary/40 text-left cursor-pointer"
+          >
+            <Search className="size-3.5 text-muted-foreground group-hover:text-foreground transition-colors mr-2 shrink-0" />
+            <span className="truncate flex-1">Search employees, contracts...</span>
+            <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-0.5 rounded border border-border bg-muted/80 px-1.5 font-mono text-[10px] font-semibold text-muted-foreground group-hover:text-foreground shrink-0">
+              {isMac ? "⌘K" : "Ctrl+K"}
+            </kbd>
+          </button>
+
+          {/* Mobile Search Icon Trigger */}
+          <button
+            type="button"
+            onClick={() => setSearchOpen(true)}
+            className="sm:hidden p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            title={isMac ? "Search (⌘K)" : "Search (Ctrl+K)"}
+          >
+            <Search className="size-4" />
+          </button>
 
           {/* Notifications / Alerts Popover Trigger */}
           <div className="relative">
@@ -483,6 +515,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="max-w-7xl mx-auto w-full">{children}</div>
         </main>
       </div>
+
+      {/* Global Command Palette Dialog */}
+      <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }
