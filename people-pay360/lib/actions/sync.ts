@@ -101,7 +101,7 @@ export async function getInitialAppState(): Promise<{
         phone: "+91 98765 43210",
         jobPosition: e.jobPosition,
         department: (deptMap.get(e.departmentId) || "Operations") as any,
-        managerId: manager ? (manager.empId || `EMP-${manager.id}`) : undefined,
+        managerId: manager ? manager.empId || `EMP-${manager.id}` : undefined,
         managerName: manager ? manager.name : undefined,
         scheduleId: `SCH-${e.workingScheduleId || 1}`,
         role: e.role,
@@ -123,14 +123,19 @@ export async function getInitialAppState(): Promise<{
       const emp = empMap.get(c.employeeId);
       return {
         id: `CON-${c.id}`,
-        employeeId: emp ? (emp.empId || `EMP-${emp.id}`) : `EMP-${c.employeeId}`,
+        employeeId: emp ? emp.empId || `EMP-${emp.id}` : `EMP-${c.employeeId}`,
         employeeName: emp ? emp.name : "Employee",
         refCode: c.name.startsWith("CON/") ? c.name : `CON/2026/00${c.id}`,
         startDate: c.startDate,
         endDate: c.endDate || undefined,
         wage: parseFloat(c.wage),
         structureId: `STR-${c.salaryStructureId}`,
-        status: c.status === "ACTIVE" ? "Running" : c.status === "EXPIRED" ? "Expired" : "Draft",
+        status:
+          c.status === "ACTIVE"
+            ? "Running"
+            : c.status === "EXPIRED"
+              ? "Expired"
+              : "Draft",
         notes: "Synchronized from Neon Database.",
       };
     });
@@ -197,7 +202,7 @@ export async function getInitialAppState(): Promise<{
 
       mappedAttendance.push({
         id: `ATT-${a.id}`,
-        employeeId: emp ? (emp.empId || `EMP-${emp.id}`) : `EMP-${a.employeeId}`,
+        employeeId: emp ? emp.empId || `EMP-${emp.id}` : `EMP-${a.employeeId}`,
         employeeName: emp ? emp.name : "Employee",
         date: a.date,
         checkIn: formatTime(a.checkIn) || "09:00",
@@ -227,7 +232,11 @@ export async function getInitialAppState(): Promise<{
       unit: t.unit === "DAYS" ? "Days" : "Hours",
       requiresAllocation: t.requiresAllocation,
       approvalLevel: "Manager",
-      color: t.name.includes("Sick") ? "#ef4444" : t.name.includes("Comp") ? "#f59e0b" : "#3b82f6",
+      color: t.name.includes("Sick")
+        ? "#ef4444"
+        : t.name.includes("Comp")
+          ? "#f59e0b"
+          : "#3b82f6",
       notes: "Policy rules configured in Neon DB.",
     }));
 
@@ -238,7 +247,7 @@ export async function getInitialAppState(): Promise<{
       const used = parseFloat(al.usedUnits);
       return {
         id: `ALC-${al.id}`,
-        employeeId: emp ? (emp.empId || `EMP-${emp.id}`) : `EMP-${al.employeeId}`,
+        employeeId: emp ? emp.empId || `EMP-${emp.id}` : `EMP-${al.employeeId}`,
         employeeName: emp ? emp.name : "Employee",
         typeId: `TYPE-${al.timeOffTypeId}`,
         typeName: typeMap.get(al.timeOffTypeId) || "Paid Time Off",
@@ -247,7 +256,12 @@ export async function getInitialAppState(): Promise<{
         remainingDays: Math.max(0, allocated - used),
         approver: "HR Manager",
         validityYear: al.validFrom.slice(0, 4),
-        status: al.status === "APPROVED" ? "Approved" : al.status === "REFUSED" ? "Refused" : "To Approve",
+        status:
+          al.status === "APPROVED"
+            ? "Approved"
+            : al.status === "REFUSED"
+              ? "Refused"
+              : "To Approve",
       };
     });
 
@@ -256,14 +270,19 @@ export async function getInitialAppState(): Promise<{
       const emp = empMap.get(r.employeeId);
       return {
         id: `REQ-${r.id}`,
-        employeeId: emp ? (emp.empId || `EMP-${emp.id}`) : `EMP-${r.employeeId}`,
+        employeeId: emp ? emp.empId || `EMP-${emp.id}` : `EMP-${r.employeeId}`,
         employeeName: emp ? emp.name : "Employee",
         typeId: `TYPE-${r.timeOffTypeId}`,
         typeName: typeMap.get(r.timeOffTypeId) || "Paid Time Off",
         startDate: r.startDate,
         endDate: r.endDate,
         durationDays: parseFloat(r.requestedUnits),
-        status: r.status === "APPROVED" ? "Approved" : r.status === "REFUSED" ? "Refused" : "To Approve",
+        status:
+          r.status === "APPROVED"
+            ? "Approved"
+            : r.status === "REFUSED"
+              ? "Refused"
+              : "To Approve",
         reason: r.notes || "Personal Leave",
         allocationId: r.allocationId ? `ALC-${r.allocationId}` : undefined,
       };
@@ -311,11 +330,20 @@ export async function getInitialAppState(): Promise<{
     // 10. Map Payruns
     const mappedPayruns: Payrun[] = dbPayruns.map((pr) => {
       const slips = dbPayslips.filter((p) => p.payrunId === pr.id);
-      const totalNet = slips.reduce((sum, p) => sum + parseFloat(p.netSalary), 0);
-      const warnings = slips.filter((p) => p.hasWarnings).map(() => "Warnings detected during computation");
+      const totalNet = slips.reduce(
+        (sum, p) => sum + parseFloat(p.netSalary),
+        0,
+      );
+      const warnings = slips
+        .filter((p) => p.hasWarnings)
+        .map(() => "Warnings detected during computation");
 
       const runStatus: "Draft" | "Validated" | "Paid" =
-        pr.status === "PAID" ? "Paid" : pr.status === "VALIDATED" ? "Validated" : "Draft";
+        pr.status === "PAID"
+          ? "Paid"
+          : pr.status === "VALIDATED"
+            ? "Validated"
+            : "Draft";
 
       return {
         id: `PR-${pr.id}`,
@@ -327,12 +355,14 @@ export async function getInitialAppState(): Promise<{
         status: runStatus,
         employeeIds: slips.map((p) => {
           const emp = empMap.get(p.employeeId);
-          return emp ? (emp.empId || `EMP-${emp.id}`) : `EMP-${p.employeeId}`;
+          return emp ? emp.empId || `EMP-${emp.id}` : `EMP-${p.employeeId}`;
         }),
         totalEmployees: slips.length,
         totalNet,
         warnings,
-        createdAt: pr.createdAt ? pr.createdAt.toISOString().slice(0, 10) : "2026-02-01",
+        createdAt: pr.createdAt
+          ? pr.createdAt.toISOString().slice(0, 10)
+          : "2026-02-01",
         paidAt: pr.paidAt ? pr.paidAt.toISOString().slice(0, 10) : undefined,
       };
     });
@@ -354,7 +384,11 @@ export async function getInitialAppState(): Promise<{
       }));
 
       const slipStatus: "Draft" | "Validated" | "Paid" =
-        ps.status === "PAID" ? "Paid" : ps.status === "VALIDATED" ? "Validated" : "Draft";
+        ps.status === "PAID"
+          ? "Paid"
+          : ps.status === "VALIDATED"
+            ? "Validated"
+            : "Draft";
 
       const basicWage = parseFloat(ps.basicWage);
       const grossSalary = parseFloat(ps.grossSalary);
@@ -364,9 +398,11 @@ export async function getInitialAppState(): Promise<{
       return {
         id: `PS-${ps.id}`,
         payrunId: `PR-${ps.payrunId}`,
-        employeeId: emp ? (emp.empId || `EMP-${emp.id}`) : `EMP-${ps.employeeId}`,
+        employeeId: emp ? emp.empId || `EMP-${emp.id}` : `EMP-${ps.employeeId}`,
         employeeName: emp ? emp.name : "Employee",
-        department: emp ? (deptMap.get(emp.departmentId) || "Operations") : "Operations",
+        department: emp
+          ? deptMap.get(emp.departmentId) || "Operations"
+          : "Operations",
         jobPosition: emp ? emp.jobPosition : "Specialist",
         period: pr ? pr.name : "Monthly",
         periodStart: pr ? pr.startDate : "2026-01-01",

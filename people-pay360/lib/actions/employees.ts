@@ -24,7 +24,10 @@ export async function getEmployees(filters?: {
   try {
     const session = await auth();
     if (!session?.user) throw new Error("Unauthorized");
-    if (!canAccessModule(session.user.role, "employees") && !canAccessModule(session.user.role, "employees_own")) {
+    if (
+      !canAccessModule(session.user.role, "employees") &&
+      !canAccessModule(session.user.role, "employees_own")
+    ) {
       throw new Error("Forbidden: Insufficient permissions to view employees");
     }
 
@@ -43,8 +46,8 @@ export async function getEmployees(filters?: {
           like(sql`lower(${employees.name})`, q),
           like(sql`lower(${employees.email})`, q),
           like(sql`lower(${employees.empId})`, q),
-          like(sql`lower(${employees.jobPosition})`, q)
-        )
+          like(sql`lower(${employees.jobPosition})`, q),
+        ),
       );
     }
 
@@ -69,7 +72,10 @@ export async function getEmployees(filters?: {
       })
       .from(employees)
       .leftJoin(departments, eq(employees.departmentId, departments.id))
-      .leftJoin(workingSchedules, eq(employees.workingScheduleId, workingSchedules.id))
+      .leftJoin(
+        workingSchedules,
+        eq(employees.workingScheduleId, workingSchedules.id),
+      )
       .orderBy(desc(employees.id));
 
     if (conditions.length > 0) {
@@ -87,11 +93,11 @@ export async function getEmployeeById(id: number | string) {
   try {
     const session = await auth();
     if (!session?.user) throw new Error("Unauthorized");
-    
+
     // Check basic access
     const canViewAll = canAccessModule(session.user.role, "employees");
     const canViewOwn = canAccessModule(session.user.role, "employees_own");
-    
+
     if (!canViewAll && !canViewOwn) {
       throw new Error("Forbidden: Insufficient permissions");
     }
@@ -101,7 +107,10 @@ export async function getEmployeeById(id: number | string) {
       condition = eq(employees.id, id);
     } else {
       const parsed = parseInt(id.replace(/\D/g, ""), 10);
-      condition = or(eq(employees.empId, id), !isNaN(parsed) ? eq(employees.id, parsed) : undefined);
+      condition = or(
+        eq(employees.empId, id),
+        !isNaN(parsed) ? eq(employees.id, parsed) : undefined,
+      );
     }
 
     const [emp] = await db
@@ -125,7 +134,10 @@ export async function getEmployeeById(id: number | string) {
       })
       .from(employees)
       .leftJoin(departments, eq(employees.departmentId, departments.id))
-      .leftJoin(workingSchedules, eq(employees.workingScheduleId, workingSchedules.id))
+      .leftJoin(
+        workingSchedules,
+        eq(employees.workingScheduleId, workingSchedules.id),
+      )
       .where(condition);
 
     return emp || null;
@@ -139,7 +151,10 @@ export async function getEmployeeSmartCounts(employeeId: number | string) {
   try {
     const session = await auth();
     if (!session?.user) throw new Error("Unauthorized");
-    if (!canAccessModule(session.user.role, "employees") && !canAccessModule(session.user.role, "employees_own")) {
+    if (
+      !canAccessModule(session.user.role, "employees") &&
+      !canAccessModule(session.user.role, "employees_own")
+    ) {
       throw new Error("Forbidden: Insufficient permissions");
     }
 
@@ -181,8 +196,16 @@ export async function getEmployeeSmartCounts(employeeId: number | string) {
       allocationCount: allocationCount?.count || 0,
     };
   } catch (error) {
-    console.error(`Failed to get smart counts for employee ${employeeId}:`, error);
-    return { contractsCount: 0, attendanceCount: 0, timeOffCount: 0, allocationCount: 0 };
+    console.error(
+      `Failed to get smart counts for employee ${employeeId}:`,
+      error,
+    );
+    return {
+      contractsCount: 0,
+      attendanceCount: 0,
+      timeOffCount: 0,
+      allocationCount: 0,
+    };
   }
 }
 
@@ -191,7 +214,12 @@ export async function createEmployee(data: {
   name: string;
   email?: string;
   workEmail?: string;
-  role?: "EMPLOYEE" | "HR_MANAGER" | "PAYROLL_USER" | "PAYROLL_MANAGER" | "ADMIN";
+  role?:
+    | "EMPLOYEE"
+    | "HR_MANAGER"
+    | "PAYROLL_USER"
+    | "PAYROLL_MANAGER"
+    | "ADMIN";
   departmentId?: number;
   department?: string;
   jobPosition: string;
@@ -210,34 +238,50 @@ export async function createEmployee(data: {
     const session = await auth();
     if (!session?.user) throw new Error("Unauthorized");
     if (!canAccessModule(session.user.role, "employees")) {
-      throw new Error("Forbidden: Only HR Managers or Admins can create employees");
+      throw new Error(
+        "Forbidden: Only HR Managers or Admins can create employees",
+      );
     }
 
     const allDepts = await db.select().from(departments);
     let resolvedDeptId = data.departmentId;
 
     if (!resolvedDeptId && data.department) {
-      const match = allDepts.find((d) => d.name.toLowerCase() === data.department?.toLowerCase());
+      const match = allDepts.find(
+        (d) => d.name.toLowerCase() === data.department?.toLowerCase(),
+      );
       resolvedDeptId = match ? match.id : allDepts[0]?.id || 1;
     } else if (!resolvedDeptId) {
       resolvedDeptId = allDepts[0]?.id || 1;
     }
 
     const allSchedules = await db.select().from(workingSchedules);
-    const resolvedScheduleId = data.workingScheduleId || allSchedules[0]?.id || 1;
+    const resolvedScheduleId =
+      data.workingScheduleId || allSchedules[0]?.id || 1;
 
-    const email = data.workEmail || data.email || `${data.name.toLowerCase().replace(/\s+/g, ".")}@oxp.com`;
+    const email =
+      data.workEmail ||
+      data.email ||
+      `${data.name.toLowerCase().replace(/\s+/g, ".")}@oxp.com`;
     const empId = data.empId || `EMP-${Date.now().toString().slice(-4)}`;
 
-    const bankAccountNumber = data.bankDetails?.accountNumber || data.bankAccountNumber || null;
-    const bankName = data.bankDetails?.bankName || data.bankName || (bankAccountNumber ? "HDFC Bank" : null);
+    const bankAccountNumber =
+      data.bankDetails?.accountNumber || data.bankAccountNumber || null;
+    const bankName =
+      data.bankDetails?.bankName ||
+      data.bankName ||
+      (bankAccountNumber ? "HDFC Bank" : null);
 
     let resolvedMgrId: number | null = null;
     if (data.managerId) {
       if (typeof data.managerId === "number") resolvedMgrId = data.managerId;
       else {
-        const [mgr] = await db.select({ id: employees.id }).from(employees).where(eq(employees.empId, data.managerId));
-        resolvedMgrId = mgr?.id || parseInt(data.managerId.replace(/\D/g, ""), 10) || null;
+        const [mgr] = await db
+          .select({ id: employees.id })
+          .from(employees)
+          .where(eq(employees.empId, data.managerId));
+        resolvedMgrId =
+          mgr?.id || parseInt(data.managerId.replace(/\D/g, ""), 10) || null;
       }
     }
 
@@ -283,7 +327,10 @@ export async function createEmployee(data: {
     return { success: true, employee: newEmployee };
   } catch (error: any) {
     console.error("Failed to create employee:", error);
-    return { success: false, error: error.message || "Failed to create employee" };
+    return {
+      success: false,
+      error: error.message || "Failed to create employee",
+    };
   }
 }
 
@@ -293,7 +340,12 @@ export async function updateEmployee(
     name: string;
     email: string;
     workEmail: string;
-    role: "EMPLOYEE" | "HR_MANAGER" | "PAYROLL_USER" | "PAYROLL_MANAGER" | "ADMIN";
+    role:
+      | "EMPLOYEE"
+      | "HR_MANAGER"
+      | "PAYROLL_USER"
+      | "PAYROLL_MANAGER"
+      | "ADMIN";
     departmentId: number;
     department: string;
     jobPosition: string;
@@ -309,13 +361,15 @@ export async function updateEmployee(
     };
     status: "Active" | "Inactive";
     isActive: boolean;
-  }>
+  }>,
 ) {
   try {
     const session = await auth();
     if (!session?.user) throw new Error("Unauthorized");
     if (!canAccessModule(session.user.role, "employees")) {
-      throw new Error("Forbidden: Insufficient permissions to modify employees");
+      throw new Error(
+        "Forbidden: Insufficient permissions to modify employees",
+      );
     }
 
     let condition;
@@ -323,13 +377,17 @@ export async function updateEmployee(
       condition = eq(employees.id, id);
     } else {
       const parsed = parseInt(id.replace(/\D/g, ""), 10);
-      condition = or(eq(employees.empId, id), !isNaN(parsed) ? eq(employees.id, parsed) : undefined);
+      condition = or(
+        eq(employees.empId, id),
+        !isNaN(parsed) ? eq(employees.id, parsed) : undefined,
+      );
     }
 
     const updates: Record<string, any> = { updatedAt: new Date() };
 
     if (data.name) updates.name = data.name;
-    if (data.workEmail || data.email) updates.email = data.workEmail || data.email;
+    if (data.workEmail || data.email)
+      updates.email = data.workEmail || data.email;
     if (data.role) updates.role = data.role;
     if (data.jobPosition) updates.jobPosition = data.jobPosition;
     if (data.employeeType) updates.employeeType = data.employeeType;
@@ -340,8 +398,12 @@ export async function updateEmployee(
       if (typeof data.managerId === "number") {
         updates.managerId = data.managerId;
       } else if (data.managerId) {
-        const [mgr] = await db.select({ id: employees.id }).from(employees).where(eq(employees.empId, data.managerId));
-        updates.managerId = mgr?.id || parseInt(data.managerId.replace(/\D/g, ""), 10) || null;
+        const [mgr] = await db
+          .select({ id: employees.id })
+          .from(employees)
+          .where(eq(employees.empId, data.managerId));
+        updates.managerId =
+          mgr?.id || parseInt(data.managerId.replace(/\D/g, ""), 10) || null;
       } else {
         updates.managerId = null;
       }
@@ -349,7 +411,9 @@ export async function updateEmployee(
 
     if (data.department) {
       const allDepts = await db.select().from(departments);
-      const match = allDepts.find((d) => d.name.toLowerCase() === data.department?.toLowerCase());
+      const match = allDepts.find(
+        (d) => d.name.toLowerCase() === data.department?.toLowerCase(),
+      );
       if (match) updates.departmentId = match.id;
     } else if (data.departmentId) {
       updates.departmentId = data.departmentId;
@@ -359,7 +423,8 @@ export async function updateEmployee(
       updates.bankAccountNumber = data.bankDetails.accountNumber || null;
       updates.bankName = data.bankDetails.bankName || null;
     } else {
-      if (data.bankAccountNumber !== undefined) updates.bankAccountNumber = data.bankAccountNumber || null;
+      if (data.bankAccountNumber !== undefined)
+        updates.bankAccountNumber = data.bankAccountNumber || null;
       if (data.bankName !== undefined) updates.bankName = data.bankName || null;
     }
 
@@ -377,7 +442,10 @@ export async function updateEmployee(
     return { success: true, employee: updated };
   } catch (error: any) {
     console.error(`Failed to update employee ${id}:`, error);
-    return { success: false, error: error.message || "Failed to update employee" };
+    return {
+      success: false,
+      error: error.message || "Failed to update employee",
+    };
   }
 }
 
@@ -386,7 +454,9 @@ export async function deleteEmployee(id: number | string) {
     const session = await auth();
     if (!session?.user) throw new Error("Unauthorized");
     if (!canAccessModule(session.user.role, "employees")) {
-      throw new Error("Forbidden: Insufficient permissions to delete employees");
+      throw new Error(
+        "Forbidden: Insufficient permissions to delete employees",
+      );
     }
 
     let condition;
@@ -394,7 +464,10 @@ export async function deleteEmployee(id: number | string) {
       condition = eq(employees.id, id);
     } else {
       const parsed = parseInt(id.replace(/\D/g, ""), 10);
-      condition = or(eq(employees.empId, id), !isNaN(parsed) ? eq(employees.id, parsed) : undefined);
+      condition = or(
+        eq(employees.empId, id),
+        !isNaN(parsed) ? eq(employees.id, parsed) : undefined,
+      );
     }
 
     // Soft-delete by setting isActive to false to protect payroll history (Spec A1)
@@ -412,6 +485,9 @@ export async function deleteEmployee(id: number | string) {
     return { success: true, employee: updated };
   } catch (error: any) {
     console.error(`Failed to delete employee ${id}:`, error);
-    return { success: false, error: error.message || "Failed to delete employee" };
+    return {
+      success: false,
+      error: error.message || "Failed to delete employee",
+    };
   }
 }

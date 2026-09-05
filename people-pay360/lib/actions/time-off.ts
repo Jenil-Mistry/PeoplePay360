@@ -14,7 +14,10 @@ import { hasWriteAccess } from "@/lib/rbac";
 
 export async function getTimeOffTypes() {
   try {
-    return await db.select().from(timeOffTypes).where(eq(timeOffTypes.isActive, true));
+    return await db
+      .select()
+      .from(timeOffTypes)
+      .where(eq(timeOffTypes.isActive, true));
   } catch (error) {
     console.error("Failed to get time off types:", error);
     throw new Error("Unable to fetch time off policies.");
@@ -28,7 +31,10 @@ export async function getTimeOffAllocations(employeeId?: number | string) {
       if (typeof employeeId === "number") {
         resolvedEmpId = employeeId;
       } else {
-        const [emp] = await db.select({ id: employees.id }).from(employees).where(eq(employees.empId, employeeId));
+        const [emp] = await db
+          .select({ id: employees.id })
+          .from(employees)
+          .where(eq(employees.empId, employeeId));
         resolvedEmpId = emp?.id || parseInt(employeeId.replace(/\D/g, ""), 10);
       }
     }
@@ -52,11 +58,16 @@ export async function getTimeOffAllocations(employeeId?: number | string) {
       })
       .from(timeOffAllocations)
       .leftJoin(employees, eq(timeOffAllocations.employeeId, employees.id))
-      .leftJoin(timeOffTypes, eq(timeOffAllocations.timeOffTypeId, timeOffTypes.id))
+      .leftJoin(
+        timeOffTypes,
+        eq(timeOffAllocations.timeOffTypeId, timeOffTypes.id),
+      )
       .orderBy(desc(timeOffAllocations.validFrom));
 
     if (resolvedEmpId) {
-      return await query.where(eq(timeOffAllocations.employeeId, resolvedEmpId));
+      return await query.where(
+        eq(timeOffAllocations.employeeId, resolvedEmpId),
+      );
     }
 
     return await query;
@@ -97,7 +108,12 @@ export async function createTimeOffAllocation(data: {
       resolvedTypeId = parseInt(rawType.replace(/\D/g, ""), 10) || 1;
     }
 
-    const units = data.allocatedDays !== undefined ? data.allocatedDays.toFixed(2) : (typeof data.allocatedUnits === "number" ? data.allocatedUnits.toFixed(2) : data.allocatedUnits || "15.00");
+    const units =
+      data.allocatedDays !== undefined
+        ? data.allocatedDays.toFixed(2)
+        : typeof data.allocatedUnits === "number"
+          ? data.allocatedUnits.toFixed(2)
+          : data.allocatedUnits || "15.00";
     const year = data.validityYear || new Date().getFullYear().toString();
     const validFrom = data.validFrom || `${year}-01-01`;
     const validTo = data.validTo || `${year}-12-31`;
@@ -123,7 +139,10 @@ export async function createTimeOffAllocation(data: {
     return { success: true, allocation: newAlloc };
   } catch (error: any) {
     console.error("Failed to create allocation:", error);
-    return { success: false, error: error.message || "Failed to grant allocation" };
+    return {
+      success: false,
+      error: error.message || "Failed to grant allocation",
+    };
   }
 }
 
@@ -137,8 +156,12 @@ export async function getTimeOffRequests(filters?: {
       if (typeof filters.employeeId === "number") {
         resolvedEmpId = filters.employeeId;
       } else {
-        const [emp] = await db.select({ id: employees.id }).from(employees).where(eq(employees.empId, filters.employeeId));
-        resolvedEmpId = emp?.id || parseInt(filters.employeeId.replace(/\D/g, ""), 10);
+        const [emp] = await db
+          .select({ id: employees.id })
+          .from(employees)
+          .where(eq(employees.empId, filters.employeeId));
+        resolvedEmpId =
+          emp?.id || parseInt(filters.employeeId.replace(/\D/g, ""), 10);
       }
     }
 
@@ -171,7 +194,10 @@ export async function getTimeOffRequests(filters?: {
       })
       .from(timeOffRequests)
       .leftJoin(employees, eq(timeOffRequests.employeeId, employees.id))
-      .leftJoin(timeOffTypes, eq(timeOffRequests.timeOffTypeId, timeOffTypes.id))
+      .leftJoin(
+        timeOffTypes,
+        eq(timeOffRequests.timeOffTypeId, timeOffTypes.id),
+      )
       .orderBy(desc(timeOffRequests.startDate));
 
     if (conditions.length > 0) {
@@ -219,7 +245,10 @@ export async function createTimeOffRequest(data: {
 
     let resolvedAllocId: number | null = null;
     if (data.allocationId) {
-      resolvedAllocId = typeof data.allocationId === "number" ? data.allocationId : parseInt(data.allocationId.replace(/\D/g, ""), 10) || null;
+      resolvedAllocId =
+        typeof data.allocationId === "number"
+          ? data.allocationId
+          : parseInt(data.allocationId.replace(/\D/g, ""), 10) || null;
     }
 
     // Server-side date calculation: never trust client-provided duration
@@ -254,7 +283,10 @@ export async function createTimeOffRequest(data: {
     return { success: true, request };
   } catch (error: any) {
     console.error("Failed to create time off request:", error);
-    return { success: false, error: error.message || "Failed to create leave request" };
+    return {
+      success: false,
+      error: error.message || "Failed to create leave request",
+    };
   }
 }
 
@@ -319,8 +351,8 @@ export async function approveTimeOffRequest(requestId: number | string) {
             and(
               eq(timeOffAllocations.employeeId, req.employeeId),
               eq(timeOffAllocations.timeOffTypeId, req.timeOffTypeId),
-              eq(timeOffAllocations.status, "APPROVED")
-            )
+              eq(timeOffAllocations.status, "APPROVED"),
+            ),
           )
           .limit(1);
 
@@ -347,7 +379,10 @@ export async function approveTimeOffRequest(requestId: number | string) {
     return { success: true, request: updatedReq };
   } catch (error: any) {
     console.error(`Failed to approve leave request ${requestId}:`, error);
-    return { success: false, error: error.message || "Failed to approve request" };
+    return {
+      success: false,
+      error: error.message || "Failed to approve request",
+    };
   }
 }
 
@@ -376,6 +411,9 @@ export async function refuseTimeOffRequest(requestId: number | string) {
     return { success: true, request: updatedReq };
   } catch (error: any) {
     console.error(`Failed to refuse leave request ${requestId}:`, error);
-    return { success: false, error: error.message || "Failed to refuse request" };
+    return {
+      success: false,
+      error: error.message || "Failed to refuse request",
+    };
   }
 }

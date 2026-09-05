@@ -34,7 +34,10 @@ export async function getSalaryStructures() {
   }
 }
 
-export async function createSalaryStructure(data: { name: string; notes?: string }) {
+export async function createSalaryStructure(data: {
+  name: string;
+  notes?: string;
+}) {
   try {
     const [struct] = await db
       .insert(salaryStructures)
@@ -52,13 +55,19 @@ export async function createSalaryStructure(data: { name: string; notes?: string
     return { success: true, structure: struct };
   } catch (error: any) {
     console.error("Failed to create salary structure:", error);
-    return { success: false, error: error.message || "Failed to create structure" };
+    return {
+      success: false,
+      error: error.message || "Failed to create structure",
+    };
   }
 }
 
 export async function getSalaryRules(structureId?: number | string) {
   try {
-    const rawId = typeof structureId === "string" ? parseInt(structureId.replace(/\D/g, ""), 10) : structureId;
+    const rawId =
+      typeof structureId === "string"
+        ? parseInt(structureId.replace(/\D/g, ""), 10)
+        : structureId;
     const query = db.select().from(salaryRules).orderBy(salaryRules.sequence);
     if (rawId) {
       return await query.where(eq(salaryRules.structureId, rawId));
@@ -74,9 +83,25 @@ export async function createSalaryRule(data: {
   structureId?: number | string;
   name: string;
   code: string;
-  category: "BASIC" | "ALLOWANCE" | "GROSS" | "DEDUCTION" | "NET" | "Basic" | "Allowance" | "Gross" | "Deduction" | "Net";
+  category:
+    | "BASIC"
+    | "ALLOWANCE"
+    | "GROSS"
+    | "DEDUCTION"
+    | "NET"
+    | "Basic"
+    | "Allowance"
+    | "Gross"
+    | "Deduction"
+    | "Net";
   sequence: number;
-  computationType: "FIXED" | "PERCENTAGE" | "FORMULA" | "fixed" | "percentage" | "formula";
+  computationType:
+    | "FIXED"
+    | "PERCENTAGE"
+    | "FORMULA"
+    | "fixed"
+    | "percentage"
+    | "formula";
   amount?: number | string;
   fixedAmount?: number;
   percentage?: number | string;
@@ -86,10 +111,16 @@ export async function createSalaryRule(data: {
   try {
     let resolvedStructId = 1;
     if (data.structureId) {
-      resolvedStructId = typeof data.structureId === "number" ? data.structureId : parseInt(data.structureId.replace(/\D/g, ""), 10) || 1;
+      resolvedStructId =
+        typeof data.structureId === "number"
+          ? data.structureId
+          : parseInt(data.structureId.replace(/\D/g, ""), 10) || 1;
     }
 
-    const catMap: Record<string, "BASIC" | "ALLOWANCE" | "GROSS" | "DEDUCTION" | "NET"> = {
+    const catMap: Record<
+      string,
+      "BASIC" | "ALLOWANCE" | "GROSS" | "DEDUCTION" | "NET"
+    > = {
       Basic: "BASIC",
       BASIC: "BASIC",
       Allowance: "ALLOWANCE",
@@ -113,8 +144,20 @@ export async function createSalaryRule(data: {
     };
     const dbComp = compMap[data.computationType] || "FIXED";
 
-    const amountVal = data.fixedAmount !== undefined ? data.fixedAmount.toFixed(2) : (data.amount !== undefined ? (typeof data.amount === "number" ? data.amount.toFixed(2) : String(data.amount)) : null);
-    const pctVal = data.percentage !== undefined ? (typeof data.percentage === "number" ? data.percentage.toFixed(2) : String(data.percentage)) : null;
+    const amountVal =
+      data.fixedAmount !== undefined
+        ? data.fixedAmount.toFixed(2)
+        : data.amount !== undefined
+          ? typeof data.amount === "number"
+            ? data.amount.toFixed(2)
+            : String(data.amount)
+          : null;
+    const pctVal =
+      data.percentage !== undefined
+        ? typeof data.percentage === "number"
+          ? data.percentage.toFixed(2)
+          : String(data.percentage)
+        : null;
 
     const [rule] = await db
       .insert(salaryRules)
@@ -150,19 +193,36 @@ export async function updateSalaryRule(
   data: Partial<{
     name: string;
     code: string;
-    category: "BASIC" | "ALLOWANCE" | "GROSS" | "DEDUCTION" | "NET" | "Basic" | "Allowance" | "Gross" | "Deduction" | "Net";
+    category:
+      | "BASIC"
+      | "ALLOWANCE"
+      | "GROSS"
+      | "DEDUCTION"
+      | "NET"
+      | "Basic"
+      | "Allowance"
+      | "Gross"
+      | "Deduction"
+      | "Net";
     sequence: number;
-    computationType: "FIXED" | "PERCENTAGE" | "FORMULA" | "fixed" | "percentage" | "formula";
+    computationType:
+      | "FIXED"
+      | "PERCENTAGE"
+      | "FORMULA"
+      | "fixed"
+      | "percentage"
+      | "formula";
     amount: number | string;
     fixedAmount: number;
     percentage: number | string;
     baseCode: string;
     formula: string;
     isActive: boolean;
-  }>
+  }>,
 ) {
   try {
-    const rawId = typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
+    const rawId =
+      typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
 
     const updates: Record<string, any> = {};
     if (data.name) updates.name = data.name;
@@ -200,10 +260,19 @@ export async function updateSalaryRule(
       updates.computationType = compMap[data.computationType] || "FIXED";
     }
 
-    if (data.fixedAmount !== undefined) updates.amount = data.fixedAmount.toFixed(2);
-    else if (data.amount !== undefined) updates.amount = typeof data.amount === "number" ? data.amount.toFixed(2) : String(data.amount);
+    if (data.fixedAmount !== undefined)
+      updates.amount = data.fixedAmount.toFixed(2);
+    else if (data.amount !== undefined)
+      updates.amount =
+        typeof data.amount === "number"
+          ? data.amount.toFixed(2)
+          : String(data.amount);
 
-    if (data.percentage !== undefined) updates.percentage = typeof data.percentage === "number" ? data.percentage.toFixed(2) : String(data.percentage);
+    if (data.percentage !== undefined)
+      updates.percentage =
+        typeof data.percentage === "number"
+          ? data.percentage.toFixed(2)
+          : String(data.percentage);
 
     const [updated] = await db
       .update(salaryRules)
@@ -226,7 +295,10 @@ export async function updateSalaryRule(
 /**
  * Step 2 of Payrun Wizard: Filters employees with active running contracts during the period (Spec B5)
  */
-export async function getEligibleEmployeesForPayrun(periodStart: string, periodEnd: string) {
+export async function getEligibleEmployeesForPayrun(
+  periodStart: string,
+  periodEnd: string,
+) {
   try {
     const eligible = await db
       .select({
@@ -245,13 +317,16 @@ export async function getEligibleEmployeesForPayrun(periodStart: string, periodE
       .from(employees)
       .innerJoin(contracts, eq(employees.id, contracts.employeeId))
       .leftJoin(departments, eq(employees.departmentId, departments.id))
-      .leftJoin(salaryStructures, eq(contracts.salaryStructureId, salaryStructures.id))
+      .leftJoin(
+        salaryStructures,
+        eq(contracts.salaryStructureId, salaryStructures.id),
+      )
       .where(
         and(
           eq(contracts.status, "ACTIVE"),
           sql`${contracts.startDate} <= ${periodEnd}`,
-          sql`(${contracts.endDate} IS NULL OR ${contracts.endDate} >= ${periodStart})`
-        )
+          sql`(${contracts.endDate} IS NULL OR ${contracts.endDate} >= ${periodStart})`,
+        ),
       );
 
     return eligible;
@@ -272,12 +347,19 @@ export async function createPayrunBatch(data: {
   selectedEmployeeIds?: Array<number | string>;
 }) {
   try {
-    const startDate = data.periodStart || data.startDate || new Date().toISOString().split("T")[0];
-    const endDate = data.periodEnd || data.endDate || new Date().toISOString().split("T")[0];
+    const startDate =
+      data.periodStart ||
+      data.startDate ||
+      new Date().toISOString().split("T")[0];
+    const endDate =
+      data.periodEnd || data.endDate || new Date().toISOString().split("T")[0];
 
     let resolvedStructId = 1;
     if (data.structureId) {
-      resolvedStructId = typeof data.structureId === "number" ? data.structureId : parseInt(data.structureId.replace(/\D/g, ""), 10) || 1;
+      resolvedStructId =
+        typeof data.structureId === "number"
+          ? data.structureId
+          : parseInt(data.structureId.replace(/\D/g, ""), 10) || 1;
     }
 
     const rawEmpIds = data.selectedEmployeeIds || data.employeeIds || [];
@@ -287,7 +369,10 @@ export async function createPayrunBatch(data: {
       if (typeof item === "number") {
         resolvedEmpIds.push(item);
       } else {
-        const [found] = await db.select({ id: employees.id }).from(employees).where(eq(employees.empId, item));
+        const [found] = await db
+          .select({ id: employees.id })
+          .from(employees)
+          .where(eq(employees.empId, item));
         const numId = found?.id || parseInt(item.replace(/\D/g, ""), 10);
         if (numId) resolvedEmpIds.push(numId);
       }
@@ -316,15 +401,27 @@ export async function createPayrunBatch(data: {
     return { success: true, payrunId: payrun.id, payrun };
   } catch (error: any) {
     console.error("Failed to create payrun batch:", error);
-    return { success: false, error: error.message || "Failed to create payrun" };
+    return {
+      success: false,
+      error: error.message || "Failed to create payrun",
+    };
   }
 }
 
-export async function computePayrunBatch(payrunId: number | string, targetEmployeeIds?: Array<number | string>) {
+export async function computePayrunBatch(
+  payrunId: number | string,
+  targetEmployeeIds?: Array<number | string>,
+) {
   try {
-    const rawRunId = typeof payrunId === "string" ? parseInt(payrunId.replace(/\D/g, ""), 10) : payrunId;
+    const rawRunId =
+      typeof payrunId === "string"
+        ? parseInt(payrunId.replace(/\D/g, ""), 10)
+        : payrunId;
 
-    const [payrun] = await db.select().from(payruns).where(eq(payruns.id, rawRunId));
+    const [payrun] = await db
+      .select()
+      .from(payruns)
+      .where(eq(payruns.id, rawRunId));
     if (!payrun) throw new Error("Payrun not found.");
 
     // Fetch rules for this payrun's structure
@@ -342,7 +439,10 @@ export async function computePayrunBatch(payrunId: number | string, targetEmploy
         if (typeof item === "number") {
           resolvedTargetIds.push(item);
         } else {
-          const [found] = await db.select({ id: employees.id }).from(employees).where(eq(employees.empId, item));
+          const [found] = await db
+            .select({ id: employees.id })
+            .from(employees)
+            .where(eq(employees.empId, item));
           const numId = found?.id || parseInt(item.replace(/\D/g, ""), 10);
           if (numId) resolvedTargetIds.push(numId);
         }
@@ -351,7 +451,10 @@ export async function computePayrunBatch(payrunId: number | string, targetEmploy
 
     let empList;
     if (resolvedTargetIds && resolvedTargetIds.length > 0) {
-      empList = await db.select().from(employees).where(inArray(employees.id, resolvedTargetIds));
+      empList = await db
+        .select()
+        .from(employees)
+        .where(inArray(employees.id, resolvedTargetIds));
     } else {
       const eligible = await getEligibleEmployeesForPayrun(payrun.startDate, payrun.endDate);
       if (eligible.length === 0) {
@@ -361,16 +464,25 @@ export async function computePayrunBatch(payrunId: number | string, targetEmploy
     }
 
     // Clear any previous draft payslips for this payrun
-    const existingPayslips = await db.select().from(payslips).where(eq(payslips.payrunId, rawRunId));
+    const existingPayslips = await db
+      .select()
+      .from(payslips)
+      .where(eq(payslips.payrunId, rawRunId));
     for (const ps of existingPayslips) {
       await db.delete(payslipLines).where(eq(payslipLines.payslipId, ps.id));
-      await db.delete(payslipWarnings).where(eq(payslipWarnings.payslipId, ps.id));
+      await db
+        .delete(payslipWarnings)
+        .where(eq(payslipWarnings.payslipId, ps.id));
     }
     await db.delete(payslips).where(eq(payslips.payrunId, rawRunId));
 
     // Compute payslip for each employee
     for (const emp of empList) {
-      const contract = await getActiveContractForPeriod(emp.id, payrun.startDate, payrun.endDate);
+      const contract = await getActiveContractForPeriod(
+        emp.id,
+        payrun.startDate,
+        payrun.endDate,
+      );
       if (!contract) continue;
 
       const contractRules = await db
@@ -561,7 +673,10 @@ export async function markPayrunPaid(payrunId: number | string) {
 
 export async function sendPayslipsBulk(payrunId: number | string) {
   try {
-    const rawId = typeof payrunId === "string" ? parseInt(payrunId.replace(/\D/g, ""), 10) : payrunId;
+    const rawId =
+      typeof payrunId === "string"
+        ? parseInt(payrunId.replace(/\D/g, ""), 10)
+        : payrunId;
     const sentAt = new Date();
 
     const result = await db
@@ -582,7 +697,10 @@ export async function sendPayslipsBulk(payrunId: number | string) {
     return { success: true, countSent: affectedSlips.length };
   } catch (error: any) {
     console.error(`Failed to send payslips for payrun ${payrunId}:`, error);
-    return { success: false, error: error.message || "Failed to send payslips" };
+    return {
+      success: false,
+      error: error.message || "Failed to send payslips",
+    };
   }
 }
 
@@ -610,7 +728,10 @@ export async function getPayruns() {
 
     return runs.map((r) => {
       const slips = allPayslips.filter((p) => p.payrunId === r.id);
-      const totalNet = slips.reduce((sum, p) => sum + parseFloat(p.netSalary), 0);
+      const totalNet = slips.reduce(
+        (sum, p) => sum + parseFloat(p.netSalary),
+        0,
+      );
       const warningsCount = slips.filter((p) => p.hasWarnings).length;
 
       return {
@@ -628,7 +749,8 @@ export async function getPayruns() {
 
 export async function getPayrunById(id: number | string) {
   try {
-    const rawId = typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
+    const rawId =
+      typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
 
     const [run] = await db
       .select({
@@ -686,7 +808,8 @@ export async function getPayrunById(id: number | string) {
 
 export async function getPayslipDetail(id: number | string) {
   try {
-    const rawId = typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
+    const rawId =
+      typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
 
     const [ps] = await db
       .select({

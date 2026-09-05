@@ -19,8 +19,12 @@ export async function getAttendanceRecords(filters?: {
       if (typeof filters.employeeId === "number") {
         resolvedEmpId = filters.employeeId;
       } else {
-        const [emp] = await db.select({ id: employees.id }).from(employees).where(eq(employees.empId, filters.employeeId));
-        resolvedEmpId = emp?.id || parseInt(filters.employeeId.replace(/\D/g, ""), 10);
+        const [emp] = await db
+          .select({ id: employees.id })
+          .from(employees)
+          .where(eq(employees.empId, filters.employeeId));
+        resolvedEmpId =
+          emp?.id || parseInt(filters.employeeId.replace(/\D/g, ""), 10);
       }
     }
 
@@ -77,7 +81,15 @@ export async function logAttendance(data: {
   checkIn?: Date | string;
   checkOut?: Date | string;
   workedHours?: number | string;
-  status?: "PRESENT" | "LATE" | "ABSENT" | "ON_LEAVE" | "HALF_DAY" | "Present" | "Late" | "Absent";
+  status?:
+    | "PRESENT"
+    | "LATE"
+    | "ABSENT"
+    | "ON_LEAVE"
+    | "HALF_DAY"
+    | "Present"
+    | "Late"
+    | "Absent";
   isManualEdit?: boolean;
   notes?: string;
 }) {
@@ -106,7 +118,9 @@ export async function logAttendance(data: {
       if (data.checkIn instanceof Date) {
         inDate = data.checkIn;
       } else if (data.checkIn.includes(":")) {
-        inDate = new Date(`${data.date}T${data.checkIn.length === 5 ? data.checkIn + ":00" : data.checkIn}`);
+        inDate = new Date(
+          `${data.date}T${data.checkIn.length === 5 ? data.checkIn + ":00" : data.checkIn}`,
+        );
       } else {
         inDate = new Date(data.checkIn);
       }
@@ -116,13 +130,19 @@ export async function logAttendance(data: {
       if (data.checkOut instanceof Date) {
         outDate = data.checkOut;
       } else if (data.checkOut.includes(":")) {
-        outDate = new Date(`${data.date}T${data.checkOut.length === 5 ? data.checkOut + ":00" : data.checkOut}`);
+        outDate = new Date(
+          `${data.date}T${data.checkOut.length === 5 ? data.checkOut + ":00" : data.checkOut}`,
+        );
       } else {
         outDate = new Date(data.checkOut);
       }
     }
 
-    let workedHours = data.workedHours ? (typeof data.workedHours === "number" ? data.workedHours.toFixed(2) : String(data.workedHours)) : "0.00";
+    let workedHours = data.workedHours
+      ? typeof data.workedHours === "number"
+        ? data.workedHours.toFixed(2)
+        : String(data.workedHours)
+      : "0.00";
     let isOvertime = false;
 
     if (inDate && outDate) {
@@ -151,9 +171,12 @@ export async function logAttendance(data: {
     // Auto-calculate status from checkIn time against scheduled shift start (+10m tolerance)
     let dbStatus: "PRESENT" | "LATE" | "ABSENT" | "ON_LEAVE" | "HALF_DAY" = "PRESENT";
     if (data.checkIn) {
-      const timeStr = typeof data.checkIn === "string" && data.checkIn.includes(":")
-        ? data.checkIn
-        : (inDate ? `${String(inDate.getHours()).padStart(2, "0")}:${String(inDate.getMinutes()).padStart(2, "0")}` : "09:00");
+      const timeStr =
+        typeof data.checkIn === "string" && data.checkIn.includes(":")
+          ? data.checkIn
+          : inDate
+            ? `${String(inDate.getHours()).padStart(2, "0")}:${String(inDate.getMinutes()).padStart(2, "0")}`
+            : "09:00";
       const [inH, inM] = timeStr.split(":").map(Number);
       if (!isNaN(inH) && !isNaN(inM)) {
         const diffMinutes = (inH * 60 + inM) - scheduledStartMinutes;
@@ -163,7 +186,10 @@ export async function logAttendance(data: {
       dbStatus = "ABSENT";
     }
 
-    const statusMap: Record<string, "PRESENT" | "LATE" | "ABSENT" | "ON_LEAVE" | "HALF_DAY"> = {
+    const statusMap: Record<
+      string,
+      "PRESENT" | "LATE" | "ABSENT" | "ON_LEAVE" | "HALF_DAY"
+    > = {
       Present: "PRESENT",
       PRESENT: "PRESENT",
       Late: "LATE",
@@ -179,7 +205,12 @@ export async function logAttendance(data: {
     const existingRecords = await db
       .select()
       .from(attendance)
-      .where(and(eq(attendance.employeeId, resolvedEmpId), eq(attendance.date, data.date)));
+      .where(
+        and(
+          eq(attendance.employeeId, resolvedEmpId),
+          eq(attendance.date, data.date),
+        ),
+      );
 
     if (existingRecords.length > 0) {
       const primary = existingRecords[0];
@@ -187,7 +218,9 @@ export async function logAttendance(data: {
       // Purge any accidental duplicates from past operations
       if (existingRecords.length > 1) {
         for (let i = 1; i < existingRecords.length; i++) {
-          await db.delete(attendance).where(eq(attendance.id, existingRecords[i].id));
+          await db
+            .delete(attendance)
+            .where(eq(attendance.id, existingRecords[i].id));
         }
       }
 
@@ -196,7 +229,14 @@ export async function logAttendance(data: {
         .set({
           checkIn: inDate || primary.checkIn,
           checkOut: outDate || primary.checkOut,
-          workedHours: (inDate && outDate) ? workedHours : (data.workedHours ? (typeof data.workedHours === "number" ? data.workedHours.toFixed(2) : String(data.workedHours)) : primary.workedHours),
+          workedHours:
+            inDate && outDate
+              ? workedHours
+              : data.workedHours
+                ? typeof data.workedHours === "number"
+                  ? data.workedHours.toFixed(2)
+                  : String(data.workedHours)
+                : primary.workedHours,
           status: dbStatus,
           isOvertime,
           isManualCorrection: data.isManualEdit ?? primary.isManualCorrection,
@@ -236,7 +276,10 @@ export async function logAttendance(data: {
     return { success: true, record };
   } catch (error: any) {
     console.error("Failed to log attendance:", error);
-    return { success: false, error: error.message || "Failed to log attendance" };
+    return {
+      success: false,
+      error: error.message || "Failed to log attendance",
+    };
   }
 }
 
@@ -246,10 +289,18 @@ export async function correctAttendance(
     checkIn?: Date | string;
     checkOut?: Date | string;
     workedHours?: number | string;
-    status?: "PRESENT" | "LATE" | "ABSENT" | "ON_LEAVE" | "HALF_DAY" | "Present" | "Late" | "Absent";
+    status?:
+      | "PRESENT"
+      | "LATE"
+      | "ABSENT"
+      | "ON_LEAVE"
+      | "HALF_DAY"
+      | "Present"
+      | "Late"
+      | "Absent";
     notes?: string;
     correctedBy?: number;
-  }
+  },
 ) {
   try {
     const currentUser = await getAuthenticatedUser();
@@ -267,13 +318,18 @@ export async function correctAttendance(
     };
 
     if (data.checkIn) {
-      updates.checkIn = data.checkIn instanceof Date ? data.checkIn : new Date(data.checkIn);
+      updates.checkIn =
+        data.checkIn instanceof Date ? data.checkIn : new Date(data.checkIn);
     }
     if (data.checkOut) {
-      updates.checkOut = data.checkOut instanceof Date ? data.checkOut : new Date(data.checkOut);
+      updates.checkOut =
+        data.checkOut instanceof Date ? data.checkOut : new Date(data.checkOut);
     }
     if (data.workedHours !== undefined) {
-      updates.workedHours = typeof data.workedHours === "number" ? data.workedHours.toFixed(2) : String(data.workedHours);
+      updates.workedHours =
+        typeof data.workedHours === "number"
+          ? data.workedHours.toFixed(2)
+          : String(data.workedHours);
     }
     if (data.status) {
       const statusMap: Record<string, any> = {
@@ -303,11 +359,17 @@ export async function correctAttendance(
     return { success: true, record: updated };
   } catch (error: any) {
     console.error(`Failed to correct attendance ${id}:`, error);
-    return { success: false, error: error.message || "Failed to correct attendance" };
+    return {
+      success: false,
+      error: error.message || "Failed to correct attendance",
+    };
   }
 }
 
-export async function getAttendanceHealthMetrics(startDate?: string, endDate?: string) {
+export async function getAttendanceHealthMetrics(
+  startDate?: string,
+  endDate?: string,
+) {
   try {
     const conditions = [];
     if (startDate) conditions.push(gte(attendance.date, startDate));
@@ -331,12 +393,25 @@ export async function getAttendanceHealthMetrics(startDate?: string, endDate?: s
       counts[r.status] = (counts[r.status] || 0) + 1;
     }
 
-    const attendanceRate = counts.TOTAL > 0 ? Math.round(((counts.PRESENT + counts.LATE) / counts.TOTAL) * 100) : 100;
+    const attendanceRate =
+      counts.TOTAL > 0
+        ? Math.round(((counts.PRESENT + counts.LATE) / counts.TOTAL) * 100)
+        : 100;
 
     return { counts, attendanceRate };
   } catch (error) {
     console.error("Failed to get attendance health metrics:", error);
-    return { counts: { PRESENT: 0, LATE: 0, ABSENT: 0, ON_LEAVE: 0, HALF_DAY: 0, TOTAL: 0 }, attendanceRate: 100 };
+    return {
+      counts: {
+        PRESENT: 0,
+        LATE: 0,
+        ABSENT: 0,
+        ON_LEAVE: 0,
+        HALF_DAY: 0,
+        TOTAL: 0,
+      },
+      attendanceRate: 100,
+    };
   }
 }
 
@@ -357,13 +432,15 @@ export async function recordCheckIn(data: {
 }) {
   const dateStr = data.date || new Date().toISOString().split("T")[0];
   const now = new Date();
-  const timeStr = data.checkInTime || `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const timeStr =
+    data.checkInTime ||
+    `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
   const scheduledTime = data.scheduledTime || "09:00";
 
   // Calculate tolerance against scheduled time (+- 10 minutes)
   const [inH, inM] = timeStr.split(":").map(Number);
   const [schH, schM] = scheduledTime.split(":").map(Number);
-  const diffMinutes = (inH * 60 + inM) - (schH * 60 + schM);
+  const diffMinutes = inH * 60 + inM - (schH * 60 + schM);
 
   // Late if > +10 minutes
   let calculatedStatus: "PRESENT" | "LATE" = "PRESENT";
@@ -380,7 +457,9 @@ export async function recordCheckIn(data: {
   }
 
   const finalStatus: "PRESENT" | "LATE" = data.status
-    ? (data.status.toUpperCase() === "LATE" ? "LATE" : "PRESENT")
+    ? data.status.toUpperCase() === "LATE"
+      ? "LATE"
+      : "PRESENT"
     : calculatedStatus;
 
   const result = await logAttendance({
@@ -415,28 +494,43 @@ export async function recordCheckOut(data: {
 }) {
   const dateStr = data.date || new Date().toISOString().split("T")[0];
   const now = new Date();
-  const outTimeStr = data.checkOutTime || `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const outTimeStr =
+    data.checkOutTime ||
+    `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
   // Find record
   let targetId = data.recordId;
   if (!targetId && data.employeeId) {
-    const records = await getAttendanceRecords({ employeeId: data.employeeId, date: dateStr });
+    const records = await getAttendanceRecords({
+      employeeId: data.employeeId,
+      date: dateStr,
+    });
     if (records.length > 0) {
       targetId = records[0].id;
     }
   }
 
   if (!targetId) {
-    return { success: false, error: "No active check-in found for this date. Please punch in first." };
+    return {
+      success: false,
+      error: "No active check-in found for this date. Please punch in first.",
+    };
   }
 
-  const rawId = typeof targetId === "string" ? parseInt(targetId.replace(/\D/g, ""), 10) : targetId;
-  const [existing] = await db.select().from(attendance).where(eq(attendance.id, rawId));
+  const rawId =
+    typeof targetId === "string"
+      ? parseInt(targetId.replace(/\D/g, ""), 10)
+      : targetId;
+  const [existing] = await db
+    .select()
+    .from(attendance)
+    .where(eq(attendance.id, rawId));
 
   let workedHours = "0.00";
   let isOvertime = false;
   if (existing?.checkIn) {
-    let inH = 0, inM = 0;
+    let inH = 0,
+      inM = 0;
     if (existing.checkIn instanceof Date) {
       inH = existing.checkIn.getHours();
       inM = existing.checkIn.getMinutes();
@@ -448,7 +542,7 @@ export async function recordCheckOut(data: {
       }
     }
     const [outH, outM] = outTimeStr.split(":").map(Number);
-    let diffMinutes = (outH * 60 + outM) - (inH * 60 + inM);
+    let diffMinutes = outH * 60 + outM - (inH * 60 + inM);
     if (diffMinutes < 0) diffMinutes += 24 * 60; // Overnight shift
     const hours = Math.max(0, diffMinutes / 60);
     workedHours = hours.toFixed(2);
@@ -463,7 +557,10 @@ export async function recordCheckOut(data: {
       checkOut: outDate,
       workedHours,
       isOvertime,
-      notes: data.notes || existing?.notes || `Checked out at ${outTimeStr}. Worked ${workedHours} hrs.`,
+      notes:
+        data.notes ||
+        existing?.notes ||
+        `Checked out at ${outTimeStr}. Worked ${workedHours} hrs.`,
     })
     .where(eq(attendance.id, rawId))
     .returning();
@@ -481,4 +578,3 @@ export async function recordCheckOut(data: {
     timeStr: outTimeStr,
   };
 }
-

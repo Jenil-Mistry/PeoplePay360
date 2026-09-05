@@ -1,7 +1,13 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { contracts, employees, departments, salaryStructures, workingSchedules } from "@/lib/db/schema";
+import {
+  contracts,
+  employees,
+  departments,
+  salaryStructures,
+  workingSchedules,
+} from "@/lib/db/schema";
 import { eq, and, lte, gte, or, isNull, sql, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
@@ -15,10 +21,10 @@ export async function getContracts(filters?: {
   try {
     const session = await auth();
     if (!session?.user) throw new Error("Unauthorized");
-    
+
     const canViewAll = canAccessModule(session.user.role, "contracts");
     const canViewOwn = canAccessModule(session.user.role, "contracts_own");
-    
+
     if (!canViewAll && !canViewOwn) {
       throw new Error("Forbidden: Insufficient permissions");
     }
@@ -28,8 +34,12 @@ export async function getContracts(filters?: {
       if (typeof filters.employeeId === "number") {
         resolvedEmpId = filters.employeeId;
       } else {
-        const [emp] = await db.select({ id: employees.id }).from(employees).where(eq(employees.empId, filters.employeeId));
-        resolvedEmpId = emp?.id || parseInt(filters.employeeId.replace(/\D/g, ""), 10);
+        const [emp] = await db
+          .select({ id: employees.id })
+          .from(employees)
+          .where(eq(employees.empId, filters.employeeId));
+        resolvedEmpId =
+          emp?.id || parseInt(filters.employeeId.replace(/\D/g, ""), 10);
       }
     }
 
@@ -41,7 +51,8 @@ export async function getContracts(filters?: {
       conditions.push(eq(contracts.employeeId, session.user.employeeDbId));
     }
     if (filters?.status) conditions.push(eq(contracts.status, filters.status));
-    if (filters?.departmentId) conditions.push(eq(contracts.departmentId, filters.departmentId));
+    if (filters?.departmentId)
+      conditions.push(eq(contracts.departmentId, filters.departmentId));
 
     const query = db
       .select({
@@ -66,8 +77,14 @@ export async function getContracts(filters?: {
       .from(contracts)
       .leftJoin(employees, eq(contracts.employeeId, employees.id))
       .leftJoin(departments, eq(contracts.departmentId, departments.id))
-      .leftJoin(salaryStructures, eq(contracts.salaryStructureId, salaryStructures.id))
-      .leftJoin(workingSchedules, eq(contracts.workingScheduleId, workingSchedules.id))
+      .leftJoin(
+        salaryStructures,
+        eq(contracts.salaryStructureId, salaryStructures.id),
+      )
+      .leftJoin(
+        workingSchedules,
+        eq(contracts.workingScheduleId, workingSchedules.id),
+      )
       .orderBy(desc(contracts.id));
 
     if (conditions.length > 0) {
@@ -81,15 +98,22 @@ export async function getContracts(filters?: {
   }
 }
 
-export async function getActiveContractForPeriod(employeeId: number, periodStart: string, periodEnd: string) {
+export async function getActiveContractForPeriod(
+  employeeId: number,
+  periodStart: string,
+  periodEnd: string,
+) {
   try {
     const session = await auth();
     if (!session?.user) throw new Error("Unauthorized");
-    
+
     const canViewAll = canAccessModule(session.user.role, "contracts");
     const canViewOwn = canAccessModule(session.user.role, "contracts_own");
-    
-    if (!canViewAll && (!canViewOwn || session.user.employeeDbId !== employeeId)) {
+
+    if (
+      !canViewAll &&
+      (!canViewOwn || session.user.employeeDbId !== employeeId)
+    ) {
       throw new Error("Forbidden: Insufficient permissions");
     }
 
@@ -101,14 +125,17 @@ export async function getActiveContractForPeriod(employeeId: number, periodStart
           eq(contracts.employeeId, employeeId),
           eq(contracts.status, "ACTIVE"),
           lte(contracts.startDate, periodEnd),
-          or(isNull(contracts.endDate), gte(contracts.endDate, periodStart))
-        )
+          or(isNull(contracts.endDate), gte(contracts.endDate, periodStart)),
+        ),
       )
       .limit(1);
 
     return result[0] || null;
   } catch (error) {
-    console.error(`Failed to get active contract for employee ${employeeId}:`, error);
+    console.error(
+      `Failed to get active contract for employee ${employeeId}:`,
+      error,
+    );
     return null;
   }
 }
@@ -123,7 +150,14 @@ export async function createContract(data: {
   startDate: string;
   endDate?: string | null;
   wage: string | number;
-  status?: "DRAFT" | "ACTIVE" | "EXPIRED" | "CANCELLED" | "Running" | "Draft" | "Expired";
+  status?:
+    | "DRAFT"
+    | "ACTIVE"
+    | "EXPIRED"
+    | "CANCELLED"
+    | "Running"
+    | "Draft"
+    | "Expired";
   salaryStructureId?: number | string;
   structureId?: string;
 }) {
@@ -131,7 +165,9 @@ export async function createContract(data: {
     const session = await auth();
     if (!session?.user) throw new Error("Unauthorized");
     if (!canAccessModule(session.user.role, "contracts")) {
-      throw new Error("Forbidden: Insufficient permissions to create contracts");
+      throw new Error(
+        "Forbidden: Insufficient permissions to create contracts",
+      );
     }
 
     // 1. Resolve employee DB ID
@@ -139,10 +175,17 @@ export async function createContract(data: {
     let empRecord;
     if (typeof data.employeeId === "number") {
       resolvedEmpId = data.employeeId;
-      [empRecord] = await db.select().from(employees).where(eq(employees.id, resolvedEmpId));
+      [empRecord] = await db
+        .select()
+        .from(employees)
+        .where(eq(employees.id, resolvedEmpId));
     } else {
-      [empRecord] = await db.select().from(employees).where(eq(employees.empId, data.employeeId));
-      resolvedEmpId = empRecord?.id || parseInt(data.employeeId.replace(/\D/g, ""), 10) || 1;
+      [empRecord] = await db
+        .select()
+        .from(employees)
+        .where(eq(employees.empId, data.employeeId));
+      resolvedEmpId =
+        empRecord?.id || parseInt(data.employeeId.replace(/\D/g, ""), 10) || 1;
     }
 
     if (empRecord?.role === "ADMIN") {
@@ -159,7 +202,10 @@ export async function createContract(data: {
     }
 
     // 3. Resolve status
-    const statusMap: Record<string, "DRAFT" | "ACTIVE" | "EXPIRED" | "CANCELLED"> = {
+    const statusMap: Record<
+      string,
+      "DRAFT" | "ACTIVE" | "EXPIRED" | "CANCELLED"
+    > = {
       Running: "ACTIVE",
       ACTIVE: "ACTIVE",
       Draft: "DRAFT",
@@ -169,10 +215,14 @@ export async function createContract(data: {
       Cancelled: "CANCELLED",
       CANCELLED: "CANCELLED",
     };
-    const dbStatus = (data.status ? statusMap[data.status] : "ACTIVE") || "ACTIVE";
+    const dbStatus =
+      (data.status ? statusMap[data.status] : "ACTIVE") || "ACTIVE";
 
     // 4. Resolve name / refCode
-    const contractName = data.refCode || data.name || `CON/${new Date().getFullYear()}/${Date.now().toString().slice(-4)}`;
+    const contractName =
+      data.refCode ||
+      data.name ||
+      `CON/${new Date().getFullYear()}/${Date.now().toString().slice(-4)}`;
 
     // 5. Check active contract exclusivity
     if (dbStatus === "ACTIVE" && !data.endDate) {
@@ -183,8 +233,8 @@ export async function createContract(data: {
           and(
             eq(contracts.employeeId, resolvedEmpId),
             eq(contracts.status, "ACTIVE"),
-            isNull(contracts.endDate)
-          )
+            isNull(contracts.endDate),
+          ),
         );
 
       if (existingActive) {
@@ -195,7 +245,8 @@ export async function createContract(data: {
       }
     }
 
-    const wageStr = typeof data.wage === "number" ? data.wage.toFixed(2) : String(data.wage);
+    const wageStr =
+      typeof data.wage === "number" ? data.wage.toFixed(2) : String(data.wage);
 
     const [newContract] = await db
       .insert(contracts)
@@ -204,7 +255,8 @@ export async function createContract(data: {
         name: contractName,
         departmentId: data.departmentId || empRecord?.departmentId || 1,
         jobPosition: data.jobPosition || empRecord?.jobPosition || "Specialist",
-        workingScheduleId: data.workingScheduleId || empRecord?.workingScheduleId || 1,
+        workingScheduleId:
+          data.workingScheduleId || empRecord?.workingScheduleId || 1,
         startDate: data.startDate,
         endDate: data.endDate || null,
         wage: wageStr,
@@ -221,7 +273,10 @@ export async function createContract(data: {
     return { success: true, contract: newContract };
   } catch (error: any) {
     console.error("Failed to create contract:", error);
-    return { success: false, error: error.message || "Failed to create contract" };
+    return {
+      success: false,
+      error: error.message || "Failed to create contract",
+    };
   }
 }
 
@@ -236,28 +291,43 @@ export async function updateContract(
     startDate: string;
     endDate?: string | null;
     wage: string | number;
-    status: "DRAFT" | "ACTIVE" | "EXPIRED" | "CANCELLED" | "Running" | "Draft" | "Expired";
+    status:
+      | "DRAFT"
+      | "ACTIVE"
+      | "EXPIRED"
+      | "CANCELLED"
+      | "Running"
+      | "Draft"
+      | "Expired";
     salaryStructureId: number | string;
     structureId: string;
-  }>
+  }>,
 ) {
   try {
     const session = await auth();
     if (!session?.user) throw new Error("Unauthorized");
     if (!canAccessModule(session.user.role, "contracts")) {
-      throw new Error("Forbidden: Insufficient permissions to modify contracts");
+      throw new Error(
+        "Forbidden: Insufficient permissions to modify contracts",
+      );
     }
 
-    const rawId = typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
+    const rawId =
+      typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
 
     const updates: Record<string, any> = {};
     if (data.name || data.refCode) updates.name = data.refCode || data.name;
     if (data.departmentId) updates.departmentId = data.departmentId;
     if (data.jobPosition) updates.jobPosition = data.jobPosition;
-    if (data.workingScheduleId) updates.workingScheduleId = data.workingScheduleId;
+    if (data.workingScheduleId)
+      updates.workingScheduleId = data.workingScheduleId;
     if (data.startDate) updates.startDate = data.startDate;
     if (data.endDate !== undefined) updates.endDate = data.endDate;
-    if (data.wage) updates.wage = typeof data.wage === "number" ? data.wage.toFixed(2) : String(data.wage);
+    if (data.wage)
+      updates.wage =
+        typeof data.wage === "number"
+          ? data.wage.toFixed(2)
+          : String(data.wage);
 
     if (data.status) {
       const statusMap: Record<string, any> = {
@@ -275,7 +345,10 @@ export async function updateContract(
 
     if (data.salaryStructureId || data.structureId) {
       const rawStruct = data.salaryStructureId || data.structureId;
-      updates.salaryStructureId = typeof rawStruct === "number" ? rawStruct : parseInt(rawStruct!.replace(/\D/g, ""), 10) || 1;
+      updates.salaryStructureId =
+        typeof rawStruct === "number"
+          ? rawStruct
+          : parseInt(rawStruct!.replace(/\D/g, ""), 10) || 1;
     }
 
     const [updated] = await db
@@ -292,6 +365,9 @@ export async function updateContract(
     return { success: true, contract: updated };
   } catch (error: any) {
     console.error(`Failed to update contract ${id}:`, error);
-    return { success: false, error: error.message || "Failed to update contract" };
+    return {
+      success: false,
+      error: error.message || "Failed to update contract",
+    };
   }
 }

@@ -1,10 +1,6 @@
 {
-<<<<<<< HEAD
-  "id": "840ac0d2-073c-4d85-8ca6-2c2638666ed9",
-=======
-  "id": "b27ebfc4-eba7-4297-b725-aa4d2c5fc81e",
->>>>>>> 924bbb4c07dadf401d4f0ae961a0be384c47d4c4
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "0f7cd4c2-fbd9-4ba5-b7be-4acf5558f3ff",
+  "prevId": "840ac0d2-073c-4d85-8ca6-2c2638666ed9",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -91,13 +87,8 @@
         }
       },
       "indexes": {
-<<<<<<< HEAD
         "attendance_employee_date_idx": {
           "name": "attendance_employee_date_idx",
-=======
-        "one_attendance_per_employee_per_day": {
-          "name": "one_attendance_per_employee_per_day",
->>>>>>> 924bbb4c07dadf401d4f0ae961a0be384c47d4c4
           "columns": [
             {
               "expression": "employee_id",
@@ -233,7 +224,6 @@
         }
       },
       "indexes": {
-<<<<<<< HEAD
         "contracts_employee_idx": {
           "name": "contracts_employee_idx",
           "columns": [
@@ -249,8 +239,6 @@
           "method": "btree",
           "with": {}
         },
-=======
->>>>>>> 924bbb4c07dadf401d4f0ae961a0be384c47d4c4
         "one_active_contract_per_employee": {
           "name": "one_active_contract_per_employee",
           "columns": [
@@ -266,24 +254,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-<<<<<<< HEAD
-=======
-        },
-        "contracts_employee_id_idx": {
-          "name": "contracts_employee_id_idx",
-          "columns": [
-            {
-              "expression": "employee_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
->>>>>>> 924bbb4c07dadf401d4f0ae961a0be384c47d4c4
         }
       },
       "foreignKeys": {
@@ -696,13 +666,8 @@
         }
       },
       "indexes": {
-<<<<<<< HEAD
         "payslip_lines_payslip_idx": {
           "name": "payslip_lines_payslip_idx",
-=======
-        "payslip_lines_payslip_id_idx": {
-          "name": "payslip_lines_payslip_id_idx",
->>>>>>> 924bbb4c07dadf401d4f0ae961a0be384c47d4c4
           "columns": [
             {
               "expression": "payslip_id",
@@ -878,13 +843,8 @@
         }
       },
       "indexes": {
-<<<<<<< HEAD
         "payslips_payrun_idx": {
           "name": "payslips_payrun_idx",
-=======
-        "payslips_payrun_id_idx": {
-          "name": "payslips_payrun_id_idx",
->>>>>>> 924bbb4c07dadf401d4f0ae961a0be384c47d4c4
           "columns": [
             {
               "expression": "payrun_id",
@@ -898,13 +858,8 @@
           "method": "btree",
           "with": {}
         },
-<<<<<<< HEAD
         "payslips_employee_idx": {
           "name": "payslips_employee_idx",
-=======
-        "payslips_employee_id_idx": {
-          "name": "payslips_employee_id_idx",
->>>>>>> 924bbb4c07dadf401d4f0ae961a0be384c47d4c4
           "columns": [
             {
               "expression": "employee_id",
@@ -1060,13 +1015,8 @@
         }
       },
       "indexes": {
-<<<<<<< HEAD
         "salary_rules_structure_code_idx": {
           "name": "salary_rules_structure_code_idx",
-=======
-        "unique_rule_code_per_structure": {
-          "name": "unique_rule_code_per_structure",
->>>>>>> 924bbb4c07dadf401d4f0ae961a0be384c47d4c4
           "columns": [
             {
               "expression": "structure_id",
@@ -1106,15 +1056,9 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-<<<<<<< HEAD
         "salary_rules_valid_computation": {
           "name": "salary_rules_valid_computation",
-          "value": "(\n    (\"salary_rules\".\"computation_type\" = 'FIXED' AND \"salary_rules\".\"amount\" IS NOT NULL)\n    OR (\"salary_rules\".\"computation_type\" = 'PERCENTAGE' AND \"salary_rules\".\"percentage\" IS NOT NULL AND \"salary_rules\".\"base_code\" IS NOT NULL)\n    OR (\"salary_rules\".\"computation_type\" = 'FORMULA' AND \"salary_rules\".\"formula\" IS NOT NULL)\n  )"
-=======
-        "rule_computation_check": {
-          "name": "rule_computation_check",
-          "value": "\n    (\"salary_rules\".\"computation_type\" = 'FIXED' AND \"salary_rules\".\"amount\" IS NOT NULL) OR\n    (\"salary_rules\".\"computation_type\" = 'PERCENTAGE' AND \"salary_rules\".\"percentage\" IS NOT NULL AND \"salary_rules\".\"base_code\" IS NOT NULL) OR\n    (\"salary_rules\".\"computation_type\" = 'FORMULA' AND \"salary_rules\".\"formula\" IS NOT NULL)\n  "
->>>>>>> 924bbb4c07dadf401d4f0ae961a0be384c47d4c4
+          "value": "(\n    (\"salary_rules\".\"computation_type\" = 'FIXED' AND \"salary_rules\".\"amount\" IS NOT NULL)\n    OR (\"salary_rules\".\"computation_type\" = 'PERCENTAGE' AND \"salary_rules\".\"percentage\" IS NOT NULL)\n    OR (\"salary_rules\".\"computation_type\" = 'FORMULA' AND \"salary_rules\".\"formula\" IS NOT NULL)\n  )"
         }
       },
       "isRLSEnabled": false
@@ -1220,13 +1164,8 @@
         }
       },
       "indexes": {
-<<<<<<< HEAD
         "time_off_allocations_employee_type_idx": {
           "name": "time_off_allocations_employee_type_idx",
-=======
-        "time_off_allocations_emp_type_idx": {
-          "name": "time_off_allocations_emp_type_idx",
->>>>>>> 924bbb4c07dadf401d4f0ae961a0be384c47d4c4
           "columns": [
             {
               "expression": "employee_id",
@@ -1368,13 +1307,8 @@
         }
       },
       "indexes": {
-<<<<<<< HEAD
         "time_off_requests_employee_status_idx": {
           "name": "time_off_requests_employee_status_idx",
-=======
-        "time_off_requests_emp_status_idx": {
-          "name": "time_off_requests_emp_status_idx",
->>>>>>> 924bbb4c07dadf401d4f0ae961a0be384c47d4c4
           "columns": [
             {
               "expression": "employee_id",

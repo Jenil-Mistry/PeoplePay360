@@ -16,7 +16,12 @@ export async function signUpUser(data: {
   password: string;
   jobPosition?: string;
   departmentName?: string;
-  role?: "EMPLOYEE" | "HR_MANAGER" | "PAYROLL_USER" | "PAYROLL_MANAGER" | "ADMIN";
+  role?:
+    | "EMPLOYEE"
+    | "HR_MANAGER"
+    | "PAYROLL_USER"
+    | "PAYROLL_MANAGER"
+    | "ADMIN";
 }) {
   try {
     // 1. Verify the caller is an authenticated ADMIN
@@ -114,7 +119,6 @@ export async function resetPassword(data: {
   newPassword: string;
 }) {
   try {
-
     // Validate new password
     const validation = validatePassword(data.newPassword);
     if (!validation.valid) {
@@ -178,7 +182,7 @@ export async function changeOwnPassword(data: {
     // Verify current password
     const isValid = await bcrypt.compare(
       data.currentPassword,
-      employee.passwordHash
+      employee.passwordHash,
     );
     if (!isValid) {
       return { error: "Current password is incorrect." };
