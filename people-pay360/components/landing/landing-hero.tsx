@@ -17,18 +17,12 @@ export function LandingHero() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
-        {/* Eyebrow Pill */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-primary/20 bg-primary/5 text-primary text-xs font-semibold shadow-2xs animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <Sparkles className="size-3.5" />
-          <span>Unified Workforce & Payroll OS — No Spreadsheets. No Discrepancies.</span>
-          <span className="size-1.5 rounded-full bg-primary animate-ping" />
-        </div>
 
         {/* Hero Headline */}
         <div className="max-w-4xl mx-auto space-y-4">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground leading-[1.15]">
             Run HR, Contracts, Time Off, and Payroll on{" "}
-            <span className="text-primary underline decoration-primary/30 decoration-wavy decoration-2">
+            <span className="text-primary decoration-primary/30 decoration-wavy decoration-2">
               One Synchronized Engine.
             </span>
           </h1>

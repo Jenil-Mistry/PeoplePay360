@@ -14,3 +14,6 @@ Refer to [.agents/rules/frontend-skills.md](.agents/rules/frontend-skills.md) fo
 - **Animations**: Use `Motion` (Framer Motion) for purposeful micro-interactions and smooth feedback.
 - **Optional**: `Kokonut UI` is strictly optional and secondary; use only when it genuinely elevates specific interactive components.
 - **Excluded**: Do NOT use `Odoo / OWL` or `Aceternity UI`.
+
+## Git & Version Control Directives
+- **No Automatic Commits or Pushes**: Never run `git commit` or `git push` unless the user explicitly asks to do so.
