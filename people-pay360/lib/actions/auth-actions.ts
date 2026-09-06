@@ -114,54 +114,28 @@ export async function signInUser(data: { email: string; password: string }) {
 
 /* ── Forgot Password (Token-Based Email Recovery) ─────────────────────── */
 
-import crypto from "crypto";
-
+// Note: Self-service password reset has been disabled. Only Admins can reset passwords now.
 export async function requestPasswordReset(email: string) {
-  try {
-    const [employee] = await db
-      .select({ id: employees.id, email: employees.email })
-      .from(employees)
-      .where(eq(employees.email, email.toLowerCase().trim()))
-      .limit(1);
-
-    if (!employee) {
-      // Return success anyway to prevent email enumeration
-      return { success: true };
-    }
-
-    const token = crypto.randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 3600 * 1000); // 1 hour from now
-
-    await db.insert(passwordResetTokens).values({
-      email: employee.email,
-      token,
-      expiresAt,
-    });
-
-    // In a real application, send the token via email here.
-    // e.g., sendEmail(employee.email, `https://.../reset-password?token=${token}`)
-    console.log(`[DEV MODE] Password reset token for ${employee.email}: ${token}`);
-
-    return { success: true };
-  } catch (error) {
-    console.error("Password reset request error:", error);
-    return { error: "An unexpected error occurred. Please try again." };
-  }
+  return { error: "Self-service password reset is disabled. Please contact your administrator." };
 }
 
 export async function resetPasswordWithToken(data: {
   token: string;
   newPassword: string;
 }) {
-  try {
-    const [resetRecord] = await db
-      .select()
-      .from(passwordResetTokens)
-      .where(eq(passwordResetTokens.token, data.token))
-      .limit(1);
+  return { error: "Self-service password reset is disabled. Please contact your administrator." };
+}
 
-    if (!resetRecord || resetRecord.expiresAt < new Date()) {
-      return { error: "Invalid or expired password reset token." };
+/* ── Admin Reset Password ────────────────────────────────────── */
+
+export async function adminResetPassword(data: {
+  employeeEmail: string;
+  newPassword: string;
+}) {
+  try {
+    const session = await auth();
+    if (!session?.user || session.user.role !== "ADMIN") {
+      return { error: "Only administrators can reset passwords." };
     }
 
     const validation = validatePassword(data.newPassword);
@@ -170,19 +144,15 @@ export async function resetPasswordWithToken(data: {
     }
 
     const passwordHash = await bcrypt.hash(data.newPassword, 12);
+    
     await db
       .update(employees)
       .set({ passwordHash })
-      .where(eq(employees.email, resetRecord.email));
-
-    // Delete token after successful use
-    await db
-      .delete(passwordResetTokens)
-      .where(eq(passwordResetTokens.token, data.token));
+      .where(eq(employees.email, data.employeeEmail.toLowerCase().trim()));
 
     return { success: true };
   } catch (error) {
-    console.error("Password reset error:", error);
+    console.error("Admin reset password error:", error);
     return { error: "An unexpected error occurred. Please try again." };
   }
 }
