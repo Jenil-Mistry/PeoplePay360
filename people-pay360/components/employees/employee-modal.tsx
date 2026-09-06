@@ -15,9 +15,11 @@ import {
   UserCheck,
   CreditCard,
   ExternalLink,
+  ShieldCheck,
 } from "lucide-react";
 import { Employee } from "@/lib/types";
 import { useAppStore } from "@/lib/store";
+import { adminResetPassword } from "@/lib/actions/auth-actions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -50,11 +52,17 @@ const defaultEmployeeForm: Partial<Employee> = {
 };
 
 export function EmployeeModal({ employee, open, onOpenChange, isCreate = false }: EmployeeModalProps) {
-  const { updateEmployee, addEmployee, getEmployeeSmartCounts, schedules } = useAppStore();
+  const { updateEmployee, addEmployee, getEmployeeSmartCounts, schedules, currentUser } = useAppStore();
   const { toast } = useToast();
 
   const [isEditing, setIsEditing] = useState(isCreate);
   const [formData, setFormData] = useState<Partial<Employee>>(defaultEmployeeForm);
+
+  // Password Reset State
+  const [newPassword, setNewPassword] = useState("");
+  const [resetError, setResetError] = useState("");
+  const [resetSuccess, setResetSuccess] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
 
   React.useEffect(() => {
     if (open) {
@@ -87,6 +95,31 @@ export function EmployeeModal({ employee, open, onOpenChange, isCreate = false }
     }
 
     onOpenChange(false);
+  };
+
+  const handleResetPassword = async () => {
+    if (!newPassword || !employee?.workEmail) return;
+    setResetError("");
+    setResetSuccess("");
+    setIsResetting(true);
+
+    try {
+      const res = await adminResetPassword({
+        employeeEmail: employee.workEmail,
+        newPassword: newPassword,
+      });
+
+      if (res.error) {
+        setResetError(res.error);
+      } else {
+        setResetSuccess("Password reset successfully.");
+        setNewPassword("");
+      }
+    } catch (e) {
+      setResetError("An unexpected error occurred.");
+    } finally {
+      setIsResetting(false);
+    }
   };
 
   return (
@@ -323,6 +356,32 @@ export function EmployeeModal({ employee, open, onOpenChange, isCreate = false }
                   />
                 </div>
               </div>
+
+              {currentUser?.role === "ADMIN" && !isCreate && (
+                <div className="mt-6 pt-6 border-t border-border space-y-4">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <ShieldCheck className="size-4 text-primary" /> Admin Actions
+                  </h3>
+                  <div className="flex flex-col gap-2 p-4 rounded-xl border border-border bg-card">
+                    <p className="text-xs font-semibold text-foreground">Reset Employee Password</p>
+                    <p className="text-[11px] text-muted-foreground mb-2">Set a new password for this employee directly.</p>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="password"
+                        placeholder="New Password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="h-8 text-xs max-w-[200px]"
+                      />
+                      <Button size="sm" variant="secondary" onClick={handleResetPassword} disabled={isResetting || !newPassword}>
+                        {isResetting ? "Resetting..." : "Reset Password"}
+                      </Button>
+                    </div>
+                    {resetError && <p className="text-[10px] text-red-500 mt-1">{resetError}</p>}
+                    {resetSuccess && <p className="text-[10px] text-emerald-500 mt-1">{resetSuccess}</p>}
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>
