@@ -1,0 +1,1 @@
+CREATE INDEX "payruns_status_idx" ON "payruns" USING btree ("status");

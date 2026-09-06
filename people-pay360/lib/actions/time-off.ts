@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import {
   timeOffTypes,
   timeOffAllocations,
@@ -20,7 +21,7 @@ export async function getTimeOffTypes() {
       .from(timeOffTypes)
       .where(eq(timeOffTypes.isActive, true));
   } catch (error) {
-    console.error("Failed to get time off types:", error);
+    logger.error("time-off", "Failed to get time off types:", error);
     throw new Error("Unable to fetch time off policies.");
   }
 }
@@ -52,7 +53,7 @@ export async function createTimeOffType(data: {
 
     return { success: true, record: newType };
   } catch (error: any) {
-    console.error("Failed to create time off type:", error);
+    logger.error("time-off", "Failed to create time off type:", error);
     return { success: false, error: error.message || "Failed to create policy." };
   }
 }
@@ -81,7 +82,7 @@ export async function updateTimeOffType(id: number | string, data: {
 
     return { success: true, record: updated };
   } catch (error: any) {
-    console.error("Failed to update time off type:", error);
+    logger.error("time-off", "Failed to update time off type:", error);
     return { success: false, error: error.message || "Failed to update policy." };
   }
 }
@@ -106,7 +107,7 @@ export async function deleteTimeOffType(id: number | string) {
 
     return { success: true, record: deleted };
   } catch (error: any) {
-    console.error("Failed to delete time off type:", error);
+    logger.error("time-off", "Failed to delete time off type:", error);
     return { success: false, error: error.message || "Failed to delete policy." };
   }
 }
@@ -166,7 +167,7 @@ export async function getTimeOffAllocations(employeeId?: number | string) {
 
     return await query;
   } catch (error) {
-    console.error("Failed to get time off allocations:", error);
+    logger.error("time-off", "Failed to get time off allocations:", error);
     throw new Error("Unable to fetch allocations.");
   }
 }
@@ -232,7 +233,7 @@ export async function createTimeOffAllocation(data: {
 
     return { success: true, allocation: newAlloc };
   } catch (error: any) {
-    console.error("Failed to create allocation:", error);
+    logger.error("time-off", "Failed to create allocation:", error);
     return {
       success: false,
       error: error.message || "Failed to grant allocation",
@@ -307,7 +308,7 @@ export async function getTimeOffRequests(filters?: {
 
     return await query;
   } catch (error) {
-    console.error("Failed to get time off requests:", error);
+    logger.error("time-off", "Failed to get time off requests:", error);
     throw new Error("Unable to fetch leave requests.");
   }
 }
@@ -425,7 +426,7 @@ export async function createTimeOffRequest(data: {
 
     return { success: true, request };
   } catch (error: any) {
-    console.error("Failed to create time off request:", error);
+    logger.error("time-off", "Failed to create time off request:", error);
     return {
       success: false,
       error: error.message || "Failed to create leave request",
@@ -545,7 +546,7 @@ export async function approveTimeOffRequest(requestId: number | string) {
 
     return { success: true, request: result };
   } catch (error: any) {
-    console.error(`Failed to approve leave request ${requestId}:`, error);
+    logger.error("time-off", `Failed to approve leave request ${requestId}:`, error);
     return {
       success: false,
       error: error.message || "Failed to approve request",
@@ -601,7 +602,7 @@ export async function refuseTimeOffRequest(requestId: number | string) {
 
     return { success: true, request: updatedReq };
   } catch (error: any) {
-    console.error(`Failed to refuse leave request ${requestId}:`, error);
+    logger.error("time-off", `Failed to refuse leave request ${requestId}:`, error);
     return {
       success: false,
       error: error.message || "Failed to refuse request",

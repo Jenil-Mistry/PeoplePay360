@@ -10,7 +10,8 @@
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:seed": "tsx lib/db/seed.ts"
+    "db:seed": "tsx lib/db/seed.ts",
+    "test": "vitest run"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
@@ -34,17 +35,23 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/canvas-confetti": "^1.9.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.1.1",
     "dotenv": "^17.4.2",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
     "eslint-config-next": "16.3.4",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.13",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite": "^8.2.2",
+    "vitest": "^5.0.0"
   }
 }

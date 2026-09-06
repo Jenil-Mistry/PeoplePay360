@@ -13,6 +13,8 @@ export async function getAttendanceRecords(filters?: {
   date?: string;
   startDate?: string;
   endDate?: string;
+  page?: number;
+  limit?: number;
 }) {
   try {
     const user = await requireReadAccess("attendance_own");
@@ -75,11 +77,26 @@ export async function getAttendanceRecords(filters?: {
       .leftJoin(employees, eq(attendance.employeeId, employees.id))
       .orderBy(desc(attendance.date), desc(attendance.id));
 
+    let totalCount = 0;
+    const countQuery = db.select({ count: sql<number>`count(*)` }).from(attendance);
     if (conditions.length > 0) {
-      return await query.where(and(...conditions));
+      countQuery.where(and(...conditions));
+    }
+    const [{ count }] = await countQuery;
+    totalCount = Number(count);
+
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
     }
 
-    return await query;
+    const limit = filters?.limit || 50;
+    const page = filters?.page || 1;
+    const offset = (page - 1) * limit;
+
+    query.limit(limit).offset(offset);
+
+    const data = await query;
+    return { data, total: totalCount, page, limit };
   } catch (error) {
     console.error("Failed to get attendance records:", error);
     throw new Error("Unable to fetch attendance records.");
@@ -527,10 +544,11 @@ export async function recordCheckOut(data: {
   // Find record
   let targetId = data.recordId;
   if (!targetId && data.employeeId) {
-    const records = await getAttendanceRecords({
+    const res = await getAttendanceRecords({
       employeeId: data.employeeId,
       date: dateStr,
     });
+    const records = res.data;
     if (records.length > 0) {
       targetId = records[0].id;
     }

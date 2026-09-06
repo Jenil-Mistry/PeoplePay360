@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/lib/db";
+import { logger } from "@/lib/logger";
 import {
   payruns,
   payslips,
@@ -35,7 +36,7 @@ export async function getSalaryStructures() {
       rulesCount: rules.filter((r) => r.structureId === s.id).length,
     }));
   } catch (error) {
-    console.error("Failed to get salary structures:", error);
+    logger.error("payroll", "Failed to get salary structures:", error);
     throw new Error("Unable to fetch salary structures.");
   }
 }
@@ -61,7 +62,7 @@ export async function createSalaryStructure(data: {
 
     return { success: true, structure: struct };
   } catch (error: any) {
-    console.error("Failed to create salary structure:", error);
+    logger.error("payroll", "Failed to create salary structure:", error);
     return {
       success: false,
       error: error.message || "Failed to create structure",
@@ -82,7 +83,7 @@ export async function getSalaryRules(structureId?: number | string) {
     }
     return await query;
   } catch (error) {
-    console.error("Failed to get salary rules:", error);
+    logger.error("payroll", "Failed to get salary rules:", error);
     throw new Error("Unable to fetch salary rules.");
   }
 }
@@ -197,7 +198,7 @@ export async function createSalaryRule(data: {
 
     return { success: true, rule };
   } catch (error: any) {
-    console.error("Failed to create salary rule:", error);
+    logger.error("payroll", "Failed to create salary rule:", error);
     return { success: false, error: error.message || "Failed to create rule" };
   }
 }
@@ -302,7 +303,7 @@ export async function updateSalaryRule(
 
     return { success: true, rule: updated };
   } catch (error: any) {
-    console.error(`Failed to update salary rule ${id}:`, error);
+    logger.error("payroll", `Failed to update salary rule ${id}:`, error);
     return { success: false, error: error.message || "Failed to update rule" };
   }
 }
@@ -356,7 +357,7 @@ export async function getEligibleEmployeesForPayrun(
 
     return eligible;
   } catch (error) {
-    console.error("Failed to get eligible employees:", error);
+    logger.error("payroll", "Failed to get eligible employees:", error);
     throw new Error("Unable to fetch eligible employees.");
   }
 }
@@ -460,7 +461,7 @@ export async function createPayrunBatch(data: {
 
     return { success: true, payrunId: payrun.id, payrun };
   } catch (error: any) {
-    console.error("Failed to create payrun batch:", error);
+    logger.error("payroll", "Failed to create payrun batch:", error);
     return {
       success: false,
       error: error.message || "Failed to create payrun",
@@ -713,7 +714,7 @@ export async function computePayrunBatch(
 
     return { success: true };
   } catch (error: any) {
-    console.error(`Failed to compute payrun ${payrunId}:`, error);
+    logger.error("payroll", `Failed to compute payrun ${payrunId}:`, error);
     return { success: false, error: error.message || "Computation failed" };
   }
 }
@@ -751,7 +752,7 @@ export async function validatePayrun(payrunId: number | string) {
 
     return { success: true };
   } catch (error: any) {
-    console.error(`Failed to validate payrun ${payrunId}:`, error);
+    logger.error("payroll", `Failed to validate payrun ${payrunId}:`, error);
     return { success: false, error: error.message || "Validation failed" };
   }
 }
@@ -791,7 +792,7 @@ export async function markPayrunPaid(payrunId: number | string) {
 
     return { success: true };
   } catch (error: any) {
-    console.error(`Failed to mark payrun ${payrunId} paid:`, error);
+    logger.error("payroll", `Failed to mark payrun ${payrunId} paid:`, error);
     return { success: false, error: error.message || "Failed to mark paid" };
   }
 }
@@ -822,7 +823,7 @@ export async function sendPayslipsBulk(payrunId: number | string) {
 
     return { success: true, countSent: affectedSlips.length };
   } catch (error: any) {
-    console.error(`Failed to send payslips for payrun ${payrunId}:`, error);
+    logger.error("payroll", `Failed to send payslips for payrun ${payrunId}:`, error);
     return {
       success: false,
       error: error.message || "Failed to send payslips",
@@ -869,7 +870,7 @@ export async function getPayruns() {
       };
     });
   } catch (error) {
-    console.error("Failed to get payruns:", error);
+    logger.error("payroll", "Failed to get payruns:", error);
     throw new Error("Unable to fetch payruns.");
   }
 }
@@ -929,7 +930,7 @@ export async function getPayrunById(id: number | string) {
       payslips: slips,
     };
   } catch (error) {
-    console.error(`Failed to get payrun ${id}:`, error);
+    logger.error("payroll", `Failed to get payrun ${id}:`, error);
     throw new Error("Unable to fetch payrun details.");
   }
 }
@@ -996,7 +997,7 @@ export async function getPayslipDetail(id: number | string) {
       warnings,
     };
   } catch (error) {
-    console.error(`Failed to get payslip ${id}:`, error);
+    logger.error("payroll", `Failed to get payslip ${id}:`, error);
     throw new Error("Unable to fetch payslip details.");
   }
 }
