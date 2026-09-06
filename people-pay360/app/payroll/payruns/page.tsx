@@ -48,7 +48,10 @@ export default function PayrunsPage() {
     setScopeName("April 2026");
     setScopeStart("2026-04-01");
     setScopeEnd("2026-04-30");
-    setSelectedEmpIds(employees.map((e) => e.id));
+    const eligibleIds = employees
+      .filter((emp) => contracts.some((c) => c.employeeId === emp.id && c.status === "Running"))
+      .map((e) => e.id);
+    setSelectedEmpIds(eligibleIds);
     setWizardOpen(true);
   };
 
@@ -67,10 +70,13 @@ export default function PayrunsPage() {
   };
 
   const handleSelectAll = () => {
-    if (selectedEmpIds.length === employees.length) {
+    const eligibleIds = employees
+      .filter((emp) => contracts.some((c) => c.employeeId === emp.id && c.status === "Running"))
+      .map((e) => e.id);
+    if (selectedEmpIds.length === eligibleIds.length) {
       setSelectedEmpIds([]);
     } else {
-      setSelectedEmpIds(employees.map((e) => e.id));
+      setSelectedEmpIds(eligibleIds);
     }
   };
 

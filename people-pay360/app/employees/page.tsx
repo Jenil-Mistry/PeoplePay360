@@ -41,11 +41,18 @@ export default function EmployeesPage() {
     async function load() {
       setIsLoading(true);
       try {
+        const deptMap: Record<string, number> = {
+          "Engineering": 2,
+          "HR": 3,
+          "Sales": 4,
+          "Management": 6,
+        };
+
         const res = await getEmployees({
           page,
           limit,
           search: searchQuery,
-          departmentId: selectedDept === "All" ? undefined : (selectedDept === "Engineering" ? 2 : undefined) // In a real app we map this properly, for now backend ignores strings
+          departmentId: selectedDept === "All" ? undefined : deptMap[selectedDept]
         });
         
         // Map backend objects to the expected frontend Employee format
