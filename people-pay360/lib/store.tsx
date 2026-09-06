@@ -93,8 +93,8 @@ interface AppState {
   updateEmployee: (id: string, emp: Partial<Employee>) => void;
   deleteEmployee: (id: string) => void;
 
-  addContract: (c: Omit<Contract, "id">) => Contract;
-  updateContract: (id: string, c: Partial<Contract>) => void;
+  addContract: (c: Omit<Contract, "id"> & { workingScheduleId?: number }) => Promise<{ success: boolean; contract?: Contract; error?: string }>;
+  updateContract: (id: string, c: Partial<Contract>) => Promise<{ success: boolean; error?: string }>;
 
   addAttendance: (rec: Omit<AttendanceRecord, "id">) => AttendanceRecord;
   updateAttendance: (id: string, rec: Partial<AttendanceRecord>) => void;
@@ -126,9 +126,12 @@ interface AppState {
     periodStart: string;
     periodEnd: string;
     selectedEmployeeIds: string[];
-  }) => Payrun;
-  updatePayrunStatus: (id: string, status: "Draft" | "Validated" | "Paid") => void;
-  recomputePayrun: (id: string) => void;
+  }) => Promise<{ success: boolean; payrunId?: number | string; error?: string }>;
+  updatePayrunStatus: (
+    id: string,
+    status: "Draft" | "Validated" | "Paid"
+  ) => Promise<{ success: boolean; error?: string }>;
+  recomputePayrun: (id: string) => Promise<{ success: boolean; error?: string }>;
 
   addSalaryStructure: (s: Omit<SalaryStructure, "id">) => SalaryStructure;
   addSalaryRule: (r: Omit<SalaryRule, "id">) => SalaryRule;
@@ -250,32 +253,61 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 2. Contract Mutations -> Neon DB
-  const addContract = (data: Omit<Contract, "id">) => {
+  const addContract = async (
+    data: Omit<Contract, "id"> & { workingScheduleId?: number }
+  ): Promise<{ success: boolean; contract?: Contract; error?: string }> => {
     const tempId = `CON-${Date.now().toString().slice(-4)}`;
     const optimisticContract: Contract = { ...data, id: tempId };
     setContracts((prev) => [optimisticContract, ...prev]);
 
-    createContractAction({
-      employeeId: data.employeeId,
-      refCode: data.refCode,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      wage: data.wage,
-      status: data.status,
-      structureId: data.structureId,
-    })
-      .then(() => refreshData())
-      .catch((err) => console.error("Neon DB contract creation failed:", err));
+    try {
+      const res = await createContractAction({
+        employeeId: data.employeeId,
+        refCode: data.refCode,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        wage: data.wage,
+        status: data.status,
+        structureId: data.structureId,
+        workingScheduleId: data.workingScheduleId,
+      });
 
-    return optimisticContract;
+      if (!res.success) {
+        console.error("Neon DB contract creation failed:", res.error);
+        setContracts((prev) => prev.filter((c) => c.id !== tempId));
+        return { success: false, error: res.error || "Failed to create contract" };
+      }
+
+      await refreshData();
+      return { success: true, contract: optimisticContract };
+    } catch (err: any) {
+      console.error("Neon DB contract creation failed:", err);
+      setContracts((prev) => prev.filter((c) => c.id !== tempId));
+      return { success: false, error: err.message || "Failed to create contract" };
+    }
   };
 
-  const updateContract = (id: string, update: Partial<Contract>) => {
+  const updateContract = async (
+    id: string,
+    update: Partial<Contract>
+  ): Promise<{ success: boolean; error?: string }> => {
+    const previous = contracts;
     setContracts((prev) => prev.map((c) => (c.id === id ? { ...c, ...update } : c)));
 
-    updateContractAction(id, update)
-      .then(() => refreshData())
-      .catch((err) => console.error("Neon DB contract update failed:", err));
+    try {
+      const res = await updateContractAction(id, update);
+      if (!res.success) {
+        console.error("Neon DB contract update failed:", res.error);
+        setContracts(previous);
+        return { success: false, error: res.error || "Failed to update contract" };
+      }
+      await refreshData();
+      return { success: true };
+    } catch (err: any) {
+      console.error("Neon DB contract update failed:", err);
+      setContracts(previous);
+      return { success: false, error: err.message || "Failed to update contract" };
+    }
   };
 
   // 3. Attendance Mutations -> Neon DB
@@ -474,62 +506,81 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   // 5. Payrun Batch Mutations -> Neon DB
-  const createPayrunBatch = (params: {
+  const createPayrunBatch = async (params: {
     name: string;
     structureId: string;
     periodStart: string;
     periodEnd: string;
     selectedEmployeeIds: string[];
-  }) => {
-    const tempId = `PR-${Date.now().toString().slice(-4)}`;
-    const optimisticPayrun: Payrun = {
-      id: tempId,
-      name: params.name,
-      structureId: params.structureId,
-      structureName: "Salary Structure",
-      periodStart: params.periodStart,
-      periodEnd: params.periodEnd,
-      status: "Draft",
-      employeeIds: params.selectedEmployeeIds,
-      totalEmployees: params.selectedEmployeeIds.length,
-      totalNet: 0,
-      warnings: [],
-      createdAt: new Date().toISOString().split("T")[0],
-    };
-    setPayruns((prev) => [optimisticPayrun, ...prev]);
+  }): Promise<{ success: boolean; payrunId?: number | string; error?: string }> => {
+    try {
+      const res = await createPayrunBatchAction({
+        name: params.name,
+        periodStart: params.periodStart,
+        periodEnd: params.periodEnd,
+        structureId: params.structureId,
+        selectedEmployeeIds: params.selectedEmployeeIds,
+      });
 
-    createPayrunBatchAction({
-      name: params.name,
-      periodStart: params.periodStart,
-      periodEnd: params.periodEnd,
-      structureId: params.structureId,
-      selectedEmployeeIds: params.selectedEmployeeIds,
-    })
-      .then(() => refreshData())
-      .catch((err) => console.error("Neon DB payrun batch creation failed:", err));
+      if (!res.success) {
+        console.error("Neon DB payrun batch creation failed:", res.error);
+        return { success: false, error: res.error || "Failed to create payrun batch" };
+      }
 
-    return optimisticPayrun;
+      await refreshData();
+      return { success: true, payrunId: res.payrunId };
+    } catch (err: any) {
+      console.error("Neon DB payrun batch creation failed:", err);
+      return { success: false, error: err.message || "Failed to create payrun batch" };
+    }
   };
 
-  const updatePayrunStatus = (id: string, status: "Draft" | "Validated" | "Paid") => {
+  const updatePayrunStatus = async (
+    id: string,
+    status: "Draft" | "Validated" | "Paid"
+  ): Promise<{ success: boolean; error?: string }> => {
+    const previous = payruns;
     setPayruns((prev) => prev.map((p) => (p.id === id ? { ...p, status } : p)));
 
-    const action =
-      status === "Validated"
-        ? validatePayrunAction(id)
-        : status === "Paid"
-          ? markPayrunPaidAction(id)
-          : Promise.resolve({ success: true });
+    try {
+      const res =
+        status === "Validated"
+          ? await validatePayrunAction(id)
+          : status === "Paid"
+            ? await markPayrunPaidAction(id)
+            : { success: true };
 
-    action
-      .then(() => refreshData())
-      .catch((err) => console.error(`Neon DB payrun status update to ${status} failed:`, err));
+      if (!res.success) {
+        console.error(`Neon DB payrun status update to ${status} failed:`, res.error);
+        setPayruns(previous);
+        return { success: false, error: res.error || `Failed to update status to ${status}` };
+      }
+
+      await refreshData();
+      return { success: true };
+    } catch (err: any) {
+      console.error(`Neon DB payrun status update to ${status} failed:`, err);
+      setPayruns(previous);
+      return { success: false, error: err.message || `Failed to update status to ${status}` };
+    }
   };
 
-  const recomputePayrun = (id: string) => {
-    computePayrunBatchAction(id)
-      .then(() => refreshData())
-      .catch((err) => console.error("Neon DB payrun recomputation failed:", err));
+  const recomputePayrun = async (
+    id: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const res = await computePayrunBatchAction(id);
+      if (!res.success) {
+        console.error("Neon DB payrun recomputation failed:", res.error);
+        return { success: false, error: res.error || "Failed to recompute payrun" };
+      }
+
+      await refreshData();
+      return { success: true };
+    } catch (err: any) {
+      console.error("Neon DB payrun recomputation failed:", err);
+      return { success: false, error: err.message || "Failed to recompute payrun" };
+    }
   };
 
   // 6. Salary Structure & Rule Mutations -> Neon DB

@@ -36,6 +36,7 @@ export interface Contract {
   structureId: string;
   status: ContractStatus;
   notes?: string;
+  workingScheduleId?: number;
 }
 
 export interface WorkingScheduleLine {
@@ -186,4 +187,6 @@ export interface Payslip {
   deductions: number;
   net: number;
   warnings?: string[];
+  email?: string;
+  emailSentAt?: string | null;
 }

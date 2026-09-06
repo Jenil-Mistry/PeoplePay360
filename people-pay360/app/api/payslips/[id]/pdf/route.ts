@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getPayslipDetail } from "@/lib/actions/payroll";
 import { getAuthenticatedUser, requireReadAccess } from "@/lib/actions/auth-helpers";
 import { formatCurrency, formatDate } from "@/lib/utils";
+import { generatePayslipPdf } from "@/lib/pdf/payslip-pdf";
 
 export async function GET(
   request: NextRequest,
@@ -40,6 +41,38 @@ export async function GET(
     }
   } else {
     await requireReadAccess("payroll_view");
+  }
+
+  // If binary PDF download is explicitly requested (?download=pdf)
+  if (request.nextUrl.searchParams.get("download") === "pdf") {
+    const pdfBuffer = await generatePayslipPdf({
+      id: payslip.id,
+      payrunName: payslip.payrunName,
+      periodStart: payslip.periodStart,
+      periodEnd: payslip.periodEnd,
+      employeeName: payslip.employeeName,
+      empId: payslip.empId,
+      email: payslip.email,
+      jobPosition: payslip.jobPosition,
+      departmentName: payslip.departmentName,
+      bankName: payslip.bankName,
+      bankAccountNumber: payslip.bankAccountNumber,
+      contractRef: payslip.contractRef,
+      workedDays: payslip.workedDays,
+      basicWage: payslip.basicWage,
+      grossSalary: payslip.grossSalary,
+      netSalary: payslip.netSalary,
+      lines: payslip.lines,
+    });
+
+    const filename = `Payslip_${(payslip.empId || payslip.id).toString().replace(/[^a-zA-Z0-9_-]/g, "_")}.pdf`;
+
+    return new NextResponse(new Uint8Array(pdfBuffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+      },
+    });
   }
 
   const earnings = payslip.lines.filter((l) => l.category === "BASIC" || l.category === "ALLOWANCE");
@@ -142,8 +175,11 @@ export async function GET(
 </head>
 <body>
   <div class="no-print" style="max-width: 800px; margin: 0 auto 16px auto; display: flex; justify-content: flex-end; gap: 8px;">
-    <button onclick="window.print()" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer;">
-      🖨️ Print / Save as PDF
+    <a href="/api/payslips/${payslip.id}/pdf?download=pdf" style="background: #059669; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center; gap: 6px; font-size: 13px;">
+      📥 Download PDF
+    </a>
+    <button onclick="window.print()" style="background: #3b82f6; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; font-size: 13px;">
+      🖨️ Print
     </button>
   </div>
 

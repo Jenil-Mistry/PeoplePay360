@@ -34,7 +34,7 @@ function ContractsContent() {
   const searchParams = useSearchParams();
   const filterEmployee = searchParams.get("employee");
 
-  const { contracts, employees, salaryStructures, addContract, updateContract } = useAppStore();
+  const { contracts, employees, schedules, salaryStructures, addContract, updateContract } = useAppStore();
   const { toast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState(filterEmployee || "");
@@ -42,6 +42,7 @@ function ContractsContent() {
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreate, setIsCreate] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState<Partial<Contract>>({});
@@ -67,45 +68,78 @@ function ContractsContent() {
 
   const handleCreateNew = () => {
     setSelectedContract(null);
+    const nonAdminEmps = employees.filter((emp) => emp.role !== "ADMIN");
+    const defaultEmp = nonAdminEmps[0] || employees[0];
+
     setFormData({
-      employeeId: employees[0]?.id || "",
-      employeeName: employees[0]?.name || "",
-      refCode: `CON/2026/00${contracts.length + 10}`,
+      employeeId: defaultEmp?.id || "",
+      employeeName: defaultEmp?.name || "",
+      refCode: `CON/${new Date().getFullYear()}/00${contracts.length + 10}`,
       startDate: new Date().toISOString().split("T")[0],
       wage: 80000,
       structureId: salaryStructures[0]?.id || "",
       status: "Running",
       notes: "Period running contract for employee.",
+      workingScheduleId: schedules[0]?.id || 1,
     });
     setEmployeeSearchQuery("");
     setIsCreate(true);
     setIsModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.refCode || !formData.wage) {
       toast({ title: "Validation Error", description: "Reference code and wage are required.", type: "error" });
+      return;
+    }
+    if (!formData.employeeId) {
+      toast({ title: "Validation Error", description: "Please select an employee.", type: "error" });
       return;
     }
 
     const emp = employees.find((e) => e.id === formData.employeeId);
     const empName = emp ? emp.name : formData.employeeName || "";
 
-    if (isCreate) {
-      addContract({
-        ...formData,
-        employeeName: empName,
-      } as Omit<Contract, "id">);
-      toast({ title: "Contract Created", description: `${formData.refCode} initialized.`, type: "success" });
-    } else if (selectedContract) {
-      updateContract(selectedContract.id, {
-        ...formData,
-        employeeName: empName,
-      });
-      toast({ title: "Contract Updated", description: "Contract terms saved.", type: "success" });
-    }
+    setIsSaving(true);
+    try {
+      if (isCreate) {
+        const res = await addContract({
+          ...formData,
+          employeeName: empName,
+        } as Omit<Contract, "id">);
 
-    setIsModalOpen(false);
+        if (!res.success) {
+          toast({
+            title: "Contract Creation Failed",
+            description: res.error || "Could not create contract in database.",
+            type: "error",
+          });
+          return;
+        }
+
+        toast({ title: "Contract Created", description: `${formData.refCode} initialized and saved to database.`, type: "success" });
+      } else if (selectedContract) {
+        const res = await updateContract(selectedContract.id, {
+          ...formData,
+          employeeName: empName,
+        });
+
+        if (!res.success) {
+          toast({
+            title: "Contract Update Failed",
+            description: res.error || "Could not update contract in database.",
+            type: "error",
+          });
+          return;
+        }
+
+        toast({ title: "Contract Updated", description: "Contract terms saved.", type: "success" });
+      }
+
+      setIsModalOpen(false);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -321,17 +355,32 @@ function ContractsContent() {
               </div>
 
               <div className="space-y-1">
-                <label className="font-semibold text-muted-foreground">Contract Status</label>
+                <label className="font-semibold text-muted-foreground">Working Schedule</label>
                 <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as ContractStatus })}
+                  value={formData.workingScheduleId || (schedules[0]?.id ?? 1)}
+                  onChange={(e) => setFormData({ ...formData, workingScheduleId: Number(e.target.value) })}
                   className="h-9 w-full rounded-lg border border-border bg-background px-3 py-1 text-sm"
                 >
-                  <option value="Running">Running (Active Payroll Source)</option>
-                  <option value="Expired">Expired</option>
-                  <option value="Draft">Draft</option>
+                  {schedules.map((sch) => (
+                    <option key={sch.id} value={sch.id}>
+                      {sch.name} ({sch.totalWeeklyHours}h)
+                    </option>
+                  ))}
                 </select>
               </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="font-semibold text-muted-foreground">Contract Status</label>
+              <select
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as ContractStatus })}
+                className="h-9 w-full rounded-lg border border-border bg-background px-3 py-1 text-sm"
+              >
+                <option value="Running">Running (Active Payroll Source)</option>
+                <option value="Expired">Expired</option>
+                <option value="Draft">Draft</option>
+              </select>
             </div>
 
             <div className="space-y-1">
@@ -347,11 +396,11 @@ function ContractsContent() {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setIsModalOpen(false)}>
+            <Button variant="outline" size="sm" onClick={() => setIsModalOpen(false)} disabled={isSaving}>
               Discard
             </Button>
-            <Button size="sm" onClick={handleSave} className="bg-primary text-primary-foreground">
-              Save Contract
+            <Button size="sm" onClick={handleSave} disabled={isSaving} className="bg-primary text-primary-foreground">
+              {isSaving ? "Saving..." : "Save Contract"}
             </Button>
           </DialogFooter>
         </DialogContent>

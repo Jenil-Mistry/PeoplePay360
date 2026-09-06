@@ -369,7 +369,7 @@ async function seed() {
       if (!existingContract) {
         await db.insert(contracts).values({
           employeeId: existing.id,
-          name: `${existing.name} - 2026 Contract`,
+          name: `CON/2026/${String(existing.id).padStart(4, "0")}`,
           departmentId: emp.departmentId,
           jobPosition: emp.jobPosition,
           workingScheduleId: emp.workingScheduleId,

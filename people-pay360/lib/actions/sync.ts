@@ -349,16 +349,24 @@ export async function getInitialAppState(): Promise<{
         (sum, p) => sum + parseFloat(p.netSalary),
         0,
       );
-      const warnings = slips
-        .filter((p) => p.hasWarnings)
-        .map(() => "Warnings detected during computation");
-
       const runStatus: "Draft" | "Validated" | "Paid" =
         pr.status === "PAID"
           ? "Paid"
           : pr.status === "VALIDATED"
             ? "Validated"
             : "Draft";
+
+      const slipIds = slips.map((s) => s.id);
+      const warnings =
+        runStatus === "Paid" || runStatus === "Validated"
+          ? []
+          : Array.from(
+              new Set(
+                dbWarnings
+                  .filter((w) => slipIds.includes(w.payslipId))
+                  .map((w) => w.message)
+              )
+            );
 
       return {
         id: `PR-${pr.id}`,
@@ -432,6 +440,8 @@ export async function getInitialAppState(): Promise<{
         deductions,
         net: netSalary,
         warnings: warns.map((w) => w.message),
+        email: emp ? emp.email : "",
+        emailSentAt: ps.emailSentAt ? ps.emailSentAt.toISOString() : null,
       };
     });
 

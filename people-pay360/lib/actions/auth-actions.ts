@@ -79,6 +79,7 @@ export async function signUpUser(data: {
       role: data.role ?? "EMPLOYEE",
       departmentId,
       jobPosition: data.jobPosition?.trim() || "Employee",
+      workingScheduleId: 1,
     });
 
     return { success: true, empId };

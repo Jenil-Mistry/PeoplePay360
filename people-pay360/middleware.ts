@@ -53,14 +53,18 @@ export default auth((req) => {
     }
   }
 
-  // Payroll (except payslips): PAYROLL_USER, PAYROLL_MANAGER, ADMIN
-  if (
-    pathname.startsWith("/payroll") &&
-    !pathname.startsWith("/payroll/payslips")
-  ) {
+  // Payroll route RBAC:
+  // - EMPLOYEE can only access /payroll/payslips (to download own payslips)
+  // - HR_MANAGER can access /payroll/payslips and /payroll/payruns (to distribute payslips)
+  // - PAYROLL_USER, PAYROLL_MANAGER, ADMIN have full payroll route access
+  if (pathname.startsWith("/payroll")) {
+    if (role === "EMPLOYEE" && !pathname.startsWith("/payroll/payslips")) {
+      return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
+    }
     if (
-      role === "EMPLOYEE" ||
-      role === "HR_MANAGER"
+      role === "HR_MANAGER" &&
+      !pathname.startsWith("/payroll/payslips") &&
+      !pathname.startsWith("/payroll/payruns")
     ) {
       return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
     }

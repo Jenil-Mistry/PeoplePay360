@@ -470,72 +470,71 @@ export async function approveTimeOffRequest(requestId: number | string) {
       .from(timeOffTypes)
       .where(eq(timeOffTypes.id, req.timeOffTypeId));
 
-    const result = await db.transaction(async (tx) => {
-      let targetAllocationId = req.allocationId;
+    const tx = db;
+    let targetAllocationId = req.allocationId;
 
-      if (type?.requiresAllocation) {
-        if (!targetAllocationId) {
-          const [activeAlloc] = await tx
-            .select()
-            .from(timeOffAllocations)
-            .where(
-              and(
-                eq(timeOffAllocations.employeeId, req.employeeId),
-                eq(timeOffAllocations.timeOffTypeId, req.timeOffTypeId),
-                eq(timeOffAllocations.status, "APPROVED"),
-              ),
-            )
-            .limit(1);
-
-          targetAllocationId = activeAlloc?.id;
-        }
-
-        if (!targetAllocationId) {
-          throw new Error("No active allocation found to deduct balance from.");
-        }
-
-        // Verify balance
-        const [allocCheck] = await tx
-          .select({ allocated: timeOffAllocations.allocatedUnits, used: timeOffAllocations.usedUnits })
+    if (type?.requiresAllocation) {
+      if (!targetAllocationId) {
+        const [activeAlloc] = await tx
+          .select()
           .from(timeOffAllocations)
-          .where(eq(timeOffAllocations.id, targetAllocationId));
-          
-        const available = parseFloat(allocCheck.allocated.toString()) - parseFloat(allocCheck.used.toString());
-        const needed = parseFloat(req.requestedUnits.toString());
-        if (available < needed) {
-          throw new Error(`Insufficient balance. Needed: ${needed}, Available: ${available}`);
-        }
-
-        await tx
-          .update(timeOffAllocations)
-          .set({
-            usedUnits: sql`${timeOffAllocations.usedUnits} + ${needed}`,
-          })
-          .where(eq(timeOffAllocations.id, targetAllocationId));
-      }
-
-      const [updatedReq] = await tx
-        .update(timeOffRequests)
-        .set({
-          status: "APPROVED",
-          approvedBy: currentUser.employeeDbId,
-          approvedAt: new Date(),
-          allocationId: targetAllocationId,
-        })
-        .where(
-          and(
-            eq(timeOffRequests.id, rawId),
-            eq(timeOffRequests.status, "PENDING") // Prevent race condition
+          .where(
+            and(
+              eq(timeOffAllocations.employeeId, req.employeeId),
+              eq(timeOffAllocations.timeOffTypeId, req.timeOffTypeId),
+              eq(timeOffAllocations.status, "APPROVED"),
+            ),
           )
-        )
-        .returning();
+          .limit(1);
 
-      if (!updatedReq) {
-        throw new Error("Request was already processed by another user.");
+        targetAllocationId = activeAlloc?.id;
       }
-      
-      return updatedReq;
-    });
+
+      if (!targetAllocationId) {
+        throw new Error("No active allocation found to deduct balance from.");
+      }
+
+      // Verify balance
+      const [allocCheck] = await tx
+        .select({ allocated: timeOffAllocations.allocatedUnits, used: timeOffAllocations.usedUnits })
+        .from(timeOffAllocations)
+        .where(eq(timeOffAllocations.id, targetAllocationId));
+        
+      const available = parseFloat(allocCheck.allocated.toString()) - parseFloat(allocCheck.used.toString());
+      const needed = parseFloat(req.requestedUnits.toString());
+      if (available < needed) {
+        throw new Error(`Insufficient balance. Needed: ${needed}, Available: ${available}`);
+      }
+
+      await tx
+        .update(timeOffAllocations)
+        .set({
+          usedUnits: sql`${timeOffAllocations.usedUnits} + ${needed}`,
+        })
+        .where(eq(timeOffAllocations.id, targetAllocationId));
+    }
+
+    const [updatedReq] = await tx
+      .update(timeOffRequests)
+      .set({
+        status: "APPROVED",
+        approvedBy: currentUser.employeeDbId,
+        approvedAt: new Date(),
+        allocationId: targetAllocationId,
+      })
+      .where(
+        and(
+          eq(timeOffRequests.id, rawId),
+          eq(timeOffRequests.status, "PENDING") // Prevent race condition
+        )
+      )
+      .returning();
+
+    if (!updatedReq) {
+      throw new Error("Request was already processed by another user.");
+    }
+
+    const result = updatedReq;
 
     try {
       revalidatePath("/time-off/requests");

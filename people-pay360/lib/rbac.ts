@@ -33,6 +33,7 @@ export type RbacModule =
   | "time_off_types"
   | "payroll_view"
   | "payroll_own_payslip"
+  | "payroll_send_payslips"
   | "payroll_create_compute"
   | "payroll_validate_paid"
   | "payroll_structures_rules"
@@ -141,7 +142,7 @@ const PERMISSIONS: Record<RbacModule, Record<UserRole, PermissionLevel>> = {
   // ── Payroll ──────────────────────────
   payroll_view: {
     EMPLOYEE: "NONE",
-    HR_MANAGER: "NONE",
+    HR_MANAGER: "READ",
     PAYROLL_USER: "READ",
     PAYROLL_MANAGER: "READ",
     ADMIN: "READ",
@@ -152,6 +153,13 @@ const PERMISSIONS: Record<RbacModule, Record<UserRole, PermissionLevel>> = {
     PAYROLL_USER: "READ",
     PAYROLL_MANAGER: "READ",
     ADMIN: "READ",
+  },
+  payroll_send_payslips: {
+    EMPLOYEE: "NONE",
+    HR_MANAGER: "WRITE",
+    PAYROLL_USER: "NONE",
+    PAYROLL_MANAGER: "NONE",
+    ADMIN: "WRITE",
   },
   payroll_create_compute: {
     EMPLOYEE: "NONE",
@@ -242,7 +250,8 @@ export function getVisibleSidebarModules(role: UserRole | string) {
     timeOff: true, // Everyone can submit requests
     timeOffAllocations: canAccessModule(role, "time_off_allocations"),
     timeOffTypes: canAccessModule(role, "time_off_types"),
-    payroll: canAccessModule(role, "payroll_view"),
+    payroll: canAccessModule(role, "payroll_view") || canAccessModule(role, "payroll_own_payslip"),
+    payrollSendPayslips: canAccessModule(role, "payroll_send_payslips"),
     payrollStructures: canAccessModule(role, "payroll_structures_rules"),
     reports: canAccessModule(role, "reports"),
   };

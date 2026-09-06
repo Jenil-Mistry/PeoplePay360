@@ -14,6 +14,7 @@ import {
   Users,
   Clock,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
 import { Payrun, PayrunStatus } from "@/lib/types";
@@ -32,12 +33,13 @@ export default function PayrunsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState<1 | 2>(1);
+  const [isCreating, setIsCreating] = useState(false);
 
   // Wizard Step 1 Scope State
-  const [scopeName, setScopeName] = useState("April 2026");
-  const [scopeStructureId, setScopeStructureId] = useState(salaryStructures[0]?.id || "");
-  const [scopeStart, setScopeStart] = useState("2026-04-01");
-  const [scopeEnd, setScopeEnd] = useState("2026-04-30");
+  const [scopeName, setScopeName] = useState("May 2026");
+  const [scopeStructureId, setScopeStructureId] = useState(salaryStructures[0]?.id || "STR-1");
+  const [scopeStart, setScopeStart] = useState("2026-05-01");
+  const [scopeEnd, setScopeEnd] = useState("2026-05-31");
 
   // Wizard Step 2 Employee Selection State
   const [selectedEmpIds, setSelectedEmpIds] = useState<string[]>(employees.map((e) => e.id));
@@ -45,15 +47,41 @@ export default function PayrunsPage() {
 
   const handleStartWizard = () => {
     setWizardStep(1);
-    setScopeName("April 2026");
-    setScopeStart("2026-04-01");
-    setScopeEnd("2026-04-30");
+
+    // Compute next available batch month dynamically so it never defaults to a colliding name
+    const existingNames = new Set(payruns.map((p) => p.name.trim().toLowerCase()));
+    const months = [
+      { name: "January 2026", start: "2026-01-01", end: "2026-01-31" },
+      { name: "February 2026", start: "2026-02-01", end: "2026-02-28" },
+      { name: "March 2026", start: "2026-03-01", end: "2026-03-31" },
+      { name: "April 2026", start: "2026-04-01", end: "2026-04-30" },
+      { name: "May 2026", start: "2026-05-01", end: "2026-05-31" },
+      { name: "June 2026", start: "2026-06-01", end: "2026-06-30" },
+      { name: "July 2026", start: "2026-07-01", end: "2026-07-31" },
+      { name: "August 2026", start: "2026-08-01", end: "2026-08-31" },
+      { name: "September 2026", start: "2026-09-01", end: "2026-09-30" },
+      { name: "October 2026", start: "2026-10-01", end: "2026-10-31" },
+      { name: "November 2026", start: "2026-11-01", end: "2026-11-30" },
+      { name: "December 2026", start: "2026-12-01", end: "2026-12-31" },
+    ];
+
+    const nextAvailable =
+      months.find((m) => !existingNames.has(m.name.toLowerCase())) || {
+        name: `Batch ${new Date().toLocaleString("en-US", { month: "short", year: "numeric" })} - ${Date.now().toString().slice(-4)}`,
+        start: new Date().toISOString().slice(0, 8) + "01",
+        end: new Date().toISOString().slice(0, 10),
+      };
+
+    setScopeName(nextAvailable.name);
+    setScopeStart(nextAvailable.start);
+    setScopeEnd(nextAvailable.end);
+    setScopeStructureId(salaryStructures[0]?.id || "STR-1");
     setSelectedEmpIds(employees.map((e) => e.id));
     setWizardOpen(true);
   };
 
   const handleContinueToStep2 = () => {
-    if (!scopeName || !scopeStart || !scopeEnd) {
+    if (!scopeName.trim() || !scopeStart || !scopeEnd) {
       toast({ title: "Scope Incomplete", description: "Please fill in period dates and payrun name.", type: "error" });
       return;
     }
@@ -74,28 +102,65 @@ export default function PayrunsPage() {
     }
   };
 
-  const handleCreatePayrun = () => {
+  const handleCreatePayrun = async () => {
     if (selectedEmpIds.length === 0) {
-      toast({ title: "No Staff Selected", description: "Please select at least 1 employee for this payrun batch.", type: "error" });
+      toast({
+        title: "No Staff Selected",
+        description: "Please select at least 1 employee for this payrun batch.",
+        type: "error",
+      });
       return;
     }
 
-    const newPr = createPayrunBatch({
-      name: scopeName,
-      structureId: scopeStructureId,
-      periodStart: scopeStart,
-      periodEnd: scopeEnd,
-      selectedEmployeeIds: selectedEmpIds,
-    });
+    if (!scopeName.trim()) {
+      toast({
+        title: "Name Required",
+        description: "Please enter a valid payrun batch name.",
+        type: "error",
+      });
+      return;
+    }
 
-    toast({
-      title: "Payrun Initialized!",
-      description: `Created batch '${newPr.name}' with ${selectedEmpIds.length} employees.`,
-      type: "success",
-    });
+    setIsCreating(true);
+    try {
+      const res = await createPayrunBatch({
+        name: scopeName.trim(),
+        structureId: scopeStructureId || salaryStructures[0]?.id || "STR-1",
+        periodStart: scopeStart,
+        periodEnd: scopeEnd,
+        selectedEmployeeIds: selectedEmpIds,
+      });
 
-    setWizardOpen(false);
-    router.push(`/payroll/payruns/${newPr.id}`);
+      if (!res.success) {
+        toast({
+          title: "Payrun Creation Failed",
+          description: res.error || "Unable to create payrun in database.",
+          type: "error",
+        });
+        return;
+      }
+
+      toast({
+        title: "Payrun Initialized & Computed!",
+        description: `Created batch '${scopeName.trim()}' with ${selectedEmpIds.length} employees.`,
+        type: "success",
+      });
+
+      setWizardOpen(false);
+      const targetId =
+        typeof res.payrunId === "number" || !String(res.payrunId).startsWith("PR-")
+          ? `PR-${res.payrunId}`
+          : res.payrunId;
+      router.push(`/payroll/payruns/${targetId}`);
+    } catch (err: any) {
+      toast({
+        title: "Unexpected Error",
+        description: err.message || "An unexpected error occurred.",
+        type: "error",
+      });
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const filteredEmployeesForSelection = employees.filter((emp) =>
@@ -160,7 +225,17 @@ export default function PayrunsPage() {
                     </span>
                   </div>
 
-                  {pr.warnings && pr.warnings.length > 0 ? (
+                  {pr.status === "Paid" ? (
+                    <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 font-medium">
+                      <CheckCircle2 className="size-3.5" />
+                      <span>Salaries Disbursed & Paid</span>
+                    </div>
+                  ) : pr.status === "Validated" ? (
+                    <div className="flex items-center gap-1.5 text-[11px] text-blue-600 font-medium">
+                      <CheckCircle2 className="size-3.5" />
+                      <span>Validated & Approved</span>
+                    </div>
+                  ) : pr.warnings && pr.warnings.length > 0 ? (
                     <div className="flex items-center gap-1.5 text-[11px] text-amber-700 dark:text-amber-400 font-medium">
                       <AlertTriangle className="size-3.5 shrink-0 text-amber-500" />
                       <span className="truncate">{pr.warnings.length} warning{pr.warnings.length > 1 ? "s" : ""}</span>
@@ -331,8 +406,20 @@ export default function PayrunsPage() {
                   <ArrowLeft className="size-3.5" />
                   Back
                 </Button>
-                <Button size="sm" onClick={handleCreatePayrun} className="bg-primary text-primary-foreground font-semibold">
-                  Create Payrun Batch
+                <Button
+                  size="sm"
+                  onClick={handleCreatePayrun}
+                  disabled={isCreating}
+                  className="bg-primary text-primary-foreground font-semibold"
+                >
+                  {isCreating ? (
+                    <>
+                      <Loader2 className="size-3.5 animate-spin mr-1.5" />
+                      <span>Creating & Computing...</span>
+                    </>
+                  ) : (
+                    <span>Create Payrun Batch</span>
+                  )}
                 </Button>
               </DialogFooter>
             </div>

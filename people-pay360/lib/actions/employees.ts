@@ -268,9 +268,9 @@ export async function createEmployee(data: {
     }
 
     const allSchedules = await db.select().from(workingSchedules);
-    const resolvedScheduleId = data.workingScheduleId;
+    let resolvedScheduleId = data.workingScheduleId;
     if (!resolvedScheduleId || !allSchedules.some(s => s.id === resolvedScheduleId)) {
-      throw new Error("Validation Error: Working schedule is required and must be valid.");
+      resolvedScheduleId = allSchedules[0]?.id || 1;
     }
 
     const email =

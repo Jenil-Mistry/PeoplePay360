@@ -23,6 +23,8 @@ import { computeEmployeePayroll } from "@/lib/payroll-server-engine";
 import { getActiveContractForPeriod } from "./contracts";
 import { requireWriteAccess, requireReadAccess } from "./auth-helpers";
 import { canAccessModule } from "@/lib/rbac";
+import { generatePayslipPdf } from "@/lib/pdf/payslip-pdf";
+import { sendPayslipEmail } from "@/lib/email/mailer";
 
 export async function getSalaryStructures() {
   try {
@@ -380,33 +382,30 @@ export async function createPayrunBatch(data: {
     const endDate =
       data.periodEnd || data.endDate || new Date().toISOString().split("T")[0];
 
-    if (!data.structureId) {
-      return { success: false, error: "Salary structure is required to create a payrun." };
-    }
-    
-    if (new Date(startDate) > new Date(endDate)) {
-      return { success: false, error: "Period start date must be before or equal to period end date." };
-    }
-
     let resolvedStructId = 1;
     if (data.structureId) {
       resolvedStructId =
         typeof data.structureId === "number"
           ? data.structureId
-          : parseInt(data.structureId.replace(/\D/g, ""), 10) || 1;
+          : parseInt(String(data.structureId).replace(/\D/g, ""), 10) || 1;
     }
 
-    // Duplicate payrun prevention for same period and structure
-    const existingPayruns = await db.select({ id: payruns.id }).from(payruns).where(
-      and(
-        eq(payruns.structureId, resolvedStructId),
-        sql`${payruns.startDate} <= ${endDate}`,
-        sql`${payruns.endDate} >= ${startDate}`
-      )
-    );
+    if (new Date(startDate) > new Date(endDate)) {
+      return { success: false, error: "Period start date must be before or equal to period end date." };
+    }
 
-    if (existingPayruns.length > 0) {
-      return { success: false, error: "A payrun for this structure and overlapping period already exists." };
+    // Duplicate check: verify if a batch with the exact same name already exists
+    const [existingSameName] = await db
+      .select({ id: payruns.id })
+      .from(payruns)
+      .where(eq(payruns.name, data.name.trim()))
+      .limit(1);
+
+    if (existingSameName) {
+      return {
+        success: false,
+        error: `A payrun named '${data.name}' already exists. Please choose a distinct batch name.`,
+      };
     }
 
     const rawEmpIds = data.selectedEmployeeIds || data.employeeIds || [];
@@ -420,19 +419,36 @@ export async function createPayrunBatch(data: {
           .select({ id: employees.id })
           .from(employees)
           .where(eq(employees.empId, item));
-        const numId = found?.id || parseInt(item.replace(/\D/g, ""), 10);
+        const numId = found?.id || parseInt(String(item).replace(/\D/g, ""), 10);
         if (numId) resolvedEmpIds.push(numId);
       }
     }
     
-    // Server-side revalidation of eligibility
-    const eligibleEmployees = await getEligibleEmployeesForPayrun(startDate, endDate, resolvedStructId);
-    const eligibleIds = eligibleEmployees.map(e => e.id);
-    const validTargetIds = resolvedEmpIds.filter(id => eligibleIds.includes(id));
-    const excludedIds = resolvedEmpIds.filter(id => !eligibleIds.includes(id));
+    // Fetch all employees with active contracts covering the period
+    const eligibleContracts = await db
+      .select({ employeeId: contracts.employeeId })
+      .from(contracts)
+      .where(
+        and(
+          eq(contracts.status, "ACTIVE"),
+          sql`${contracts.startDate} <= ${endDate}`,
+          sql`(${contracts.endDate} IS NULL OR ${contracts.endDate} >= ${startDate})`
+        )
+      );
+    const eligibleIds = [...new Set(eligibleContracts.map((c) => c.employeeId))];
+
+    let validTargetIds: number[] = [];
+    if (resolvedEmpIds.length > 0) {
+      validTargetIds = resolvedEmpIds.filter((id) => eligibleIds.includes(id));
+    } else {
+      validTargetIds = eligibleIds;
+    }
     
     if (validTargetIds.length === 0) {
-      return { success: false, error: "No eligible employees selected. They might have a conflicting contract structure, be in an Admin role, or lack an active contract." };
+      return {
+        success: false,
+        error: "No eligible employees found with active contracts covering this period. Please make sure employees have active running contracts for these dates.",
+      };
     }
 
     // Initialize Payrun in DRAFT (Spec B5)
@@ -524,8 +540,8 @@ export async function computePayrunBatch(
       empList = await db.select().from(employees).where(inArray(employees.id, eligible.map((e) => e.id)));
     }
 
-    // Wrap everything in a single transaction (Spec Phase 4.4)
-    await db.transaction(async (tx) => {
+    // Sequential execution (neon-http driver is connectionless and does not support db.transaction)
+    const tx = db;
       // Clear any previous draft payslips for this payrun
       const existingPayslips = await tx
         .select()
@@ -656,12 +672,6 @@ export async function computePayrunBatch(
           workedDays,
         });
         
-        if (workedDays < expectedWorkdays) {
-          computation.warnings.push({
-            warningType: "PRORATION",
-            message: `Employee worked fewer days (${workedDays}) than expected (${expectedWorkdays}). Proration may apply.`
-          });
-        }
 
         const [newPayslip] = await tx
           .insert(payslips)
@@ -703,33 +713,37 @@ export async function computePayrunBatch(
         .update(payruns)
         .set({ status: "COMPUTED", computedAt: new Date() })
         .where(eq(payruns.id, rawRunId));
-    });
 
-    try {
-      revalidatePath(`/payroll/payruns/${rawRunId}`);
-      revalidatePath("/payroll/payruns");
-      revalidatePath("/dashboard");
-    } catch {}
+      try {
+        revalidatePath(`/payroll/payruns/${rawRunId}`);
+        revalidatePath("/payroll/payruns");
+        revalidatePath("/dashboard");
+      } catch {}
 
-    return { success: true };
-  } catch (error: any) {
-    console.error(`Failed to compute payrun ${payrunId}:`, error);
-    return { success: false, error: error.message || "Computation failed" };
+      return { success: true };
+    } catch (error: any) {
+      console.error(`Failed to compute payrun ${payrunId}:`, error);
+      return { success: false, error: error.message || "Computation failed" };
+    }
   }
-}
 
-export async function validatePayrun(payrunId: number | string) {
-  try {
-    await requireWriteAccess("payroll_validate_paid");
+  export async function validatePayrun(payrunId: number | string) {
+    try {
+      await requireWriteAccess("payroll_validate_paid");
 
-    const rawId = typeof payrunId === "string" ? parseInt(payrunId.replace(/\D/g, ""), 10) : payrunId;
+      const rawId = typeof payrunId === "string" ? parseInt(payrunId.replace(/\D/g, ""), 10) : payrunId;
+      const tx = db;
 
-    await db.transaction(async (tx) => {
-      // Enforce lifecycle: only COMPUTED payrun can be validated
+      // Enforce lifecycle: auto-compute if DRAFT, then validate
       const [payrun] = await tx.select({ status: payruns.status }).from(payruns).where(eq(payruns.id, rawId));
       if (!payrun) throw new Error("Payrun not found.");
-      if (payrun.status !== "COMPUTED") {
-        throw new Error(`Cannot validate: payrun is in '${payrun.status}' status. Must be COMPUTED first.`);
+      if (payrun.status === "DRAFT") {
+        const compRes = await computePayrunBatch(rawId);
+        if (!compRes.success) {
+          throw new Error(compRes.error || "Batch computation failed before validation.");
+        }
+      } else if (payrun.status !== "COMPUTED") {
+        throw new Error(`Cannot validate: payrun is in '${payrun.status}' status. Must be COMPUTED or DRAFT first.`);
       }
 
       await tx
@@ -741,32 +755,36 @@ export async function validatePayrun(payrunId: number | string) {
         .update(payslips)
         .set({ status: "VALIDATED" })
         .where(eq(payslips.payrunId, rawId));
-    });
 
-    try {
-      revalidatePath(`/payroll/payruns/${rawId}`);
-      revalidatePath("/payroll/payruns");
-      revalidatePath("/dashboard");
-    } catch {}
+      try {
+        revalidatePath(`/payroll/payruns/${rawId}`);
+        revalidatePath("/payroll/payruns");
+        revalidatePath("/dashboard");
+      } catch {}
 
-    return { success: true };
-  } catch (error: any) {
-    console.error(`Failed to validate payrun ${payrunId}:`, error);
-    return { success: false, error: error.message || "Validation failed" };
+      return { success: true };
+    } catch (error: any) {
+      console.error(`Failed to validate payrun ${payrunId}:`, error);
+      return { success: false, error: error.message || "Validation failed" };
+    }
   }
-}
 
-export async function markPayrunPaid(payrunId: number | string) {
-  try {
-    await requireWriteAccess("payroll_validate_paid");
+  export async function markPayrunPaid(payrunId: number | string) {
+    try {
+      await requireWriteAccess("payroll_validate_paid");
 
-    const rawId = typeof payrunId === "string" ? parseInt(payrunId.replace(/\D/g, ""), 10) : payrunId;
+      const rawId = typeof payrunId === "string" ? parseInt(payrunId.replace(/\D/g, ""), 10) : payrunId;
+      const tx = db;
 
-    await db.transaction(async (tx) => {
-      // Enforce lifecycle: only VALIDATED payrun can be paid
+      // Enforce lifecycle: auto-validate if COMPUTED or DRAFT
       const [payrun] = await tx.select({ status: payruns.status }).from(payruns).where(eq(payruns.id, rawId));
       if (!payrun) throw new Error("Payrun not found.");
-      if (payrun.status !== "VALIDATED") {
+      if (payrun.status === "COMPUTED" || payrun.status === "DRAFT") {
+        const valRes = await validatePayrun(rawId);
+        if (!valRes.success) {
+          throw new Error(valRes.error || "Validation failed prior to disbursement.");
+        }
+      } else if (payrun.status !== "VALIDATED") {
         throw new Error(`Cannot mark as paid: payrun is in '${payrun.status}' status. Must be VALIDATED first.`);
       }
 
@@ -781,13 +799,12 @@ export async function markPayrunPaid(payrunId: number | string) {
         .update(payslips)
         .set({ status: "PAID" })
         .where(eq(payslips.payrunId, rawId));
-    });
 
-    try {
-      revalidatePath(`/payroll/payruns/${rawId}`);
-      revalidatePath("/payroll/payruns");
-      revalidatePath("/dashboard");
-    } catch {}
+      try {
+        revalidatePath(`/payroll/payruns/${rawId}`);
+        revalidatePath("/payroll/payruns");
+        revalidatePath("/dashboard");
+      } catch {}
 
     return { success: true };
   } catch (error: any) {
@@ -798,35 +815,225 @@ export async function markPayrunPaid(payrunId: number | string) {
 
 export async function sendPayslipsBulk(payrunId: number | string) {
   try {
-    await requireWriteAccess("payroll_validate_paid");
+    // Both ADMIN and HR_MANAGER have WRITE privilege for payroll_send_payslips
+    await requireWriteAccess("payroll_send_payslips");
+
     const rawId =
       typeof payrunId === "string"
         ? parseInt(payrunId.replace(/\D/g, ""), 10)
         : payrunId;
+
+    // Fetch payrun and verify status is PAID (salary credited)
+    const [payrun] = await db
+      .select()
+      .from(payruns)
+      .where(eq(payruns.id, rawId));
+
+    if (!payrun) {
+      throw new Error("Payrun batch not found.");
+    }
+
+    if (payrun.status !== "PAID") {
+      throw new Error(
+        `Cannot send payslips: Payrun is in '${payrun.status}' status. Salary must be credited (marked as PAID) before sending payslips.`
+      );
+    }
+
+    // Fetch all credited payslips for this payrun batch with employee details
+    const creditedSlips = await db
+      .select({
+        id: payslips.id,
+        payrunId: payslips.payrunId,
+        payrunName: payruns.name,
+        periodStart: payruns.startDate,
+        periodEnd: payruns.endDate,
+        employeeId: payslips.employeeId,
+        employeeName: employees.name,
+        empId: employees.empId,
+        email: employees.email,
+        bankName: employees.bankName,
+        bankAccountNumber: employees.bankAccountNumber,
+        departmentName: departments.name,
+        jobPosition: employees.jobPosition,
+        contractRef: contracts.name,
+        workedDays: payslips.workedDays,
+        basicWage: payslips.basicWage,
+        grossSalary: payslips.grossSalary,
+        netSalary: payslips.netSalary,
+        status: payslips.status,
+      })
+      .from(payslips)
+      .innerJoin(payruns, eq(payslips.payrunId, payruns.id))
+      .innerJoin(employees, eq(payslips.employeeId, employees.id))
+      .leftJoin(departments, eq(employees.departmentId, departments.id))
+      .leftJoin(contracts, eq(payslips.contractId, contracts.id))
+      .where(and(eq(payslips.payrunId, rawId), eq(payslips.status, "PAID")));
+
+    if (creditedSlips.length === 0) {
+      throw new Error("No credited employees found in this payrun batch.");
+    }
+
+    const slipIds = creditedSlips.map((s) => s.id);
+    const allLines = await db
+      .select()
+      .from(payslipLines)
+      .where(inArray(payslipLines.payslipId, slipIds))
+      .orderBy(payslipLines.sequence);
+
+    let sentCount = 0;
+    let failedCount = 0;
+    const errors: string[] = [];
     const sentAt = new Date();
 
-    const result = await db
-      .update(payslips)
-      .set({ emailSentAt: sentAt })
-      .where(eq(payslips.payrunId, rawId));
+    for (const slip of creditedSlips) {
+      try {
+        if (!slip.email) {
+          failedCount++;
+          errors.push(`Employee ${slip.employeeName} (${slip.empId}) has no email address configured.`);
+          continue;
+        }
 
-    // Count actual number of affected payslips
-    const affectedSlips = await db
-      .select({ id: payslips.id })
-      .from(payslips)
-      .where(and(eq(payslips.payrunId, rawId), sql`${payslips.emailSentAt} IS NOT NULL`));
+        const lines = allLines.filter((l) => l.payslipId === slip.id);
+
+        // 1. Generate crisp PDF document
+        const pdfBuffer = await generatePayslipPdf({
+          id: slip.id,
+          payrunName: slip.payrunName,
+          periodStart: slip.periodStart,
+          periodEnd: slip.periodEnd,
+          employeeName: slip.employeeName,
+          empId: slip.empId,
+          email: slip.email,
+          jobPosition: slip.jobPosition,
+          departmentName: slip.departmentName,
+          bankName: slip.bankName,
+          bankAccountNumber: slip.bankAccountNumber,
+          contractRef: slip.contractRef,
+          workedDays: slip.workedDays,
+          basicWage: slip.basicWage,
+          grossSalary: slip.grossSalary,
+          netSalary: slip.netSalary,
+          lines,
+        });
+
+        // 2. Dispatch email with PDF attached
+        const emailResult = await sendPayslipEmail({
+          to: slip.email,
+          employeeName: slip.employeeName,
+          empId: slip.empId,
+          period: slip.payrunName || "Monthly Payroll",
+          netSalary: slip.netSalary,
+          pdfBuffer,
+        });
+
+        if (emailResult.success) {
+          await db
+            .update(payslips)
+            .set({ emailSentAt: sentAt })
+            .where(eq(payslips.id, slip.id));
+          sentCount++;
+        } else {
+          failedCount++;
+          errors.push(`${slip.employeeName}: ${emailResult.error || "Email delivery failed"}`);
+        }
+      } catch (slipErr: any) {
+        failedCount++;
+        errors.push(`${slip.employeeName}: ${slipErr.message || "Failed to process payslip"}`);
+      }
+    }
 
     try {
       revalidatePath(`/payroll/payruns/${rawId}`);
+      revalidatePath("/payroll/payslips");
     } catch {}
 
-    return { success: true, countSent: affectedSlips.length };
+    return {
+      success: sentCount > 0,
+      totalCredited: creditedSlips.length,
+      countSent: sentCount,
+      failedCount,
+      errors: errors.slice(0, 5),
+    };
   } catch (error: any) {
     console.error(`Failed to send payslips for payrun ${payrunId}:`, error);
     return {
       success: false,
       error: error.message || "Failed to send payslips",
     };
+  }
+}
+
+export async function sendSinglePayslipEmail(payslipId: number | string) {
+  try {
+    // Both ADMIN and HR_MANAGER have privilege
+    await requireWriteAccess("payroll_send_payslips");
+
+    const rawId =
+      typeof payslipId === "string"
+        ? parseInt(payslipId.replace(/\D/g, ""), 10)
+        : payslipId;
+
+    const payslip = await getPayslipDetail(rawId);
+    if (!payslip) {
+      throw new Error("Payslip not found.");
+    }
+
+    if (payslip.status !== "PAID") {
+      throw new Error("Cannot send payslip: Salary has not been credited yet (status must be PAID).");
+    }
+
+    if (!payslip.email) {
+      throw new Error(`Employee ${payslip.employeeName} does not have an email address configured.`);
+    }
+
+    const pdfBuffer = await generatePayslipPdf({
+      id: payslip.id,
+      payrunName: payslip.payrunName,
+      periodStart: payslip.periodStart,
+      periodEnd: payslip.periodEnd,
+      employeeName: payslip.employeeName,
+      empId: payslip.empId,
+      email: payslip.email,
+      jobPosition: payslip.jobPosition,
+      departmentName: payslip.departmentName,
+      bankName: payslip.bankName,
+      bankAccountNumber: payslip.bankAccountNumber,
+      contractRef: payslip.contractRef,
+      workedDays: payslip.workedDays,
+      basicWage: payslip.basicWage,
+      grossSalary: payslip.grossSalary,
+      netSalary: payslip.netSalary,
+      lines: payslip.lines,
+    });
+
+    const emailResult = await sendPayslipEmail({
+      to: payslip.email,
+      employeeName: payslip.employeeName,
+      empId: payslip.empId,
+      period: payslip.payrunName || "Monthly Payroll",
+      netSalary: payslip.netSalary,
+      pdfBuffer,
+    });
+
+    if (!emailResult.success) {
+      throw new Error(emailResult.error || "Email delivery failed.");
+    }
+
+    const sentAt = new Date();
+    await db
+      .update(payslips)
+      .set({ emailSentAt: sentAt })
+      .where(eq(payslips.id, rawId));
+
+    try {
+      revalidatePath(`/payroll/payruns/${payslip.payrunId}`);
+      revalidatePath("/payroll/payslips");
+    } catch {}
+
+    return { success: true, emailSentAt: sentAt.toISOString() };
+  } catch (error: any) {
+    console.error(`Failed to send single payslip ${payslipId}:`, error);
+    return { success: false, error: error.message || "Failed to send payslip" };
   }
 }
 

@@ -444,17 +444,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
                 {payrollOpen && sidebarOpen && (
                   <div className="pl-9 pr-2 py-1 space-y-1">
-                    <Link
-                      href="/payroll/payruns"
-                      className={cn(
-                        "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
-                        pathname.startsWith("/payroll/payruns")
-                          ? "bg-primary/10 text-primary font-semibold"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
-                      )}
-                    >
-                      Payruns
-                    </Link>
+                    {!isEmployee && (
+                      <Link
+                        href="/payroll/payruns"
+                        className={cn(
+                          "block px-2.5 py-1.5 rounded-md text-xs transition-colors",
+                          pathname.startsWith("/payroll/payruns")
+                            ? "bg-primary/10 text-primary font-semibold"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
+                        )}
+                      >
+                        Payruns
+                      </Link>
+                    )}
                     <Link
                       href="/payroll/payslips"
                       className={cn(

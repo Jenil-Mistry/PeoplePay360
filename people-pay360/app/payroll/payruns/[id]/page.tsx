@@ -17,22 +17,34 @@ import {
   IndianRupee,
   FileText,
   ExternalLink,
+  Mail,
+  Loader2,
+  ShieldAlert,
 } from "lucide-react";
 import { useAppStore } from "@/lib/store";
-import { formatCurrency, formatCompactCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCurrency, formatCompactCurrency, formatDate } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
+import { sendPayslipsBulk, sendSinglePayslipEmail } from "@/lib/actions/payroll";
 
 export default function PayrunProcessingPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const router = useRouter();
-  const { payruns, payslips, updatePayrunStatus, recomputePayrun } = useAppStore();
+  const { payruns, payslips, updatePayrunStatus, recomputePayrun, currentUser, refreshData } = useAppStore();
   const { toast } = useToast();
+
+  const [isSendModalOpen, setIsSendModalOpen] = useState(false);
+  const [isSendingBulk, setIsSendingBulk] = useState(false);
+  const [sendingSingleId, setSendingSingleId] = useState<string | null>(null);
 
   const payrun = payruns.find((p) => p.id === resolvedParams.id);
   const batchPayslips = payslips.filter((ps) => ps.payrunId === resolvedParams.id);
+
+  const canSendPayslips = currentUser.role === "ADMIN" || currentUser.role === "HR_MANAGER";
+  const isPaid = payrun?.status === "Paid";
 
   if (!payrun) {
     return (
@@ -45,44 +57,182 @@ export default function PayrunProcessingPage({ params }: { params: Promise<{ id:
     );
   }
 
-  const handleCompute = () => {
-    recomputePayrun(payrun.id);
-    toast({
-      title: "Salaries Computed",
-      description: `Recomputed salary rules for ${batchPayslips.length} employee payslips.`,
-      type: "success",
-    });
+  const [isProcessingAction, setIsProcessingAction] = useState(false);
+
+  const handleCompute = async () => {
+    setIsProcessingAction(true);
+    try {
+      const res = await recomputePayrun(payrun.id);
+      if (res && !res.success) {
+        toast({
+          title: "Computation Failed",
+          description: res.error || "Failed to recompute payrun batch.",
+          type: "error",
+        });
+        return;
+      }
+      toast({
+        title: "Salaries Computed",
+        description: `Recomputed salary rules for employee payslips.`,
+        type: "success",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Computation Error",
+        description: err.message || "An error occurred during computation.",
+        type: "error",
+      });
+    } finally {
+      setIsProcessingAction(false);
+    }
   };
 
-  const handleValidate = () => {
-    updatePayrunStatus(payrun.id, "Validated");
-    toast({
-      title: "Batch Validated",
-      description: "Payrun marked as Validated. Ready for disbursement.",
-      type: "success",
-    });
+  const handleValidate = async () => {
+    setIsProcessingAction(true);
+    try {
+      const res = await updatePayrunStatus(payrun.id, "Validated");
+      if (res && !res.success) {
+        toast({
+          title: "Validation Failed",
+          description: res.error || "Failed to validate payrun.",
+          type: "error",
+        });
+        return;
+      }
+      toast({
+        title: "Batch Validated",
+        description: "Payrun marked as Validated. Ready for disbursement.",
+        type: "success",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Validation Error",
+        description: err.message || "An error occurred during validation.",
+        type: "error",
+      });
+    } finally {
+      setIsProcessingAction(false);
+    }
   };
 
-  const handleMarkPaid = () => {
-    updatePayrunStatus(payrun.id, "Paid");
-    confetti({
-      particleCount: 80,
-      spread: 60,
-      origin: { y: 0.6 },
-    });
-    toast({
-      title: "Payroll Disbursed!",
-      description: `Payrun ${payrun.name} marked as PAID.`,
-      type: "success",
-    });
+  const handleMarkPaid = async () => {
+    setIsProcessingAction(true);
+    try {
+      const res = await updatePayrunStatus(payrun.id, "Paid");
+      if (res && !res.success) {
+        toast({
+          title: "Payment Update Failed",
+          description: res.error || "Failed to mark payrun as paid.",
+          type: "error",
+        });
+        return;
+      }
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.6 },
+      });
+      toast({
+        title: "Payroll Disbursed!",
+        description: `Payrun ${payrun.name} marked as PAID. Employees are now eligible to receive payslips.`,
+        type: "success",
+      });
+    } catch (err: any) {
+      toast({
+        title: "Payment Error",
+        description: err.message || "An error occurred marking as paid.",
+        type: "error",
+      });
+    } finally {
+      setIsProcessingAction(false);
+    }
   };
 
-  const handleSendPayslips = () => {
-    toast({
-      title: "Bulk Distribution Started",
-      description: `Queued digital payslip emails for ${batchPayslips.length} employees.`,
-      type: "info",
-    });
+  const handleOpenSendPayslips = () => {
+    if (!canSendPayslips) {
+      toast({
+        title: "Access Restricted",
+        description: "Only Admin and HR Manager have the privilege to send payslips.",
+        type: "error",
+      });
+      return;
+    }
+
+    if (!isPaid) {
+      toast({
+        title: "Salary Not Credited",
+        description: "Payslips can only be emailed after salary is credited (Payrun must be marked as PAID).",
+        type: "warning",
+      });
+      return;
+    }
+
+    setIsSendModalOpen(true);
+  };
+
+  const handleConfirmSendBulk = async () => {
+    try {
+      setIsSendingBulk(true);
+      const res = await sendPayslipsBulk(payrun.id);
+
+      if (res.success) {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.5 },
+        });
+        toast({
+          title: "Payslips Distributed via Email!",
+          description: `Successfully generated PDFs and emailed payslips to ${res.countSent} credited employees.`,
+          type: "success",
+        });
+        setIsSendModalOpen(false);
+        await refreshData();
+      } else {
+        toast({
+          title: "Failed to Send Payslips",
+          description: res.error || "An error occurred while generating or emailing payslips.",
+          type: "error",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to distribute payslips.",
+        type: "error",
+      });
+    } finally {
+      setIsSendingBulk(false);
+    }
+  };
+
+  const handleSendSingle = async (payslipId: string) => {
+    try {
+      setSendingSingleId(payslipId);
+      const res = await sendSinglePayslipEmail(payslipId);
+      if (res.success) {
+        toast({
+          title: "Payslip Emailed",
+          description: "Official PDF payslip has been emailed to the employee.",
+          type: "success",
+        });
+        await refreshData();
+      } else {
+        toast({
+          title: "Email Failed",
+          description: res.error || "Failed to send payslip email.",
+          type: "error",
+        });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Failed to send payslip email.",
+        type: "error",
+      });
+    } finally {
+      setSendingSingleId(null);
+    }
   };
 
   const totalGross = batchPayslips.reduce((acc, ps) => acc + ps.gross, 0);
@@ -121,13 +271,25 @@ export default function PayrunProcessingPage({ params }: { params: Promise<{ id:
 
         {/* Action Buttons: COMPUTE, VALIDATE, MARK PAID, SEND PAYSLIPS */}
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleCompute} className="font-semibold">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleCompute}
+            disabled={isProcessingAction}
+            className="font-semibold"
+          >
             <Calculator className="size-3.5" />
             COMPUTE
           </Button>
 
           {payrun.status === "Draft" && (
-            <Button variant="outline" size="sm" onClick={handleValidate} className="font-semibold">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleValidate}
+              disabled={isProcessingAction}
+              className="font-semibold"
+            >
               <CheckCircle2 className="size-3.5" />
               VALIDATE
             </Button>
@@ -137,6 +299,7 @@ export default function PayrunProcessingPage({ params }: { params: Promise<{ id:
             <Button
               size="sm"
               onClick={handleMarkPaid}
+              disabled={isProcessingAction}
               className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-xs"
             >
               <IndianRupee className="size-3.5" />
@@ -144,37 +307,92 @@ export default function PayrunProcessingPage({ params }: { params: Promise<{ id:
             </Button>
           )}
 
-          <Button
-            size="sm"
-            onClick={handleSendPayslips}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
-          >
-            <Send className="size-3.5" />
-            SEND PAYSLIPS
-          </Button>
+          {canSendPayslips && (
+            <Button
+              size="sm"
+              onClick={handleOpenSendPayslips}
+              disabled={!isPaid}
+              className={cn(
+                "font-semibold shadow-xs transition-all",
+                isPaid
+                  ? "bg-primary hover:bg-primary/90 text-primary-foreground"
+                  : "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
+              )}
+              title={
+                !isPaid
+                  ? "Payrun must be marked as PAID before distributing payslips"
+                  : "Email official PDF payslips to all credited employees"
+              }
+            >
+              <Send className="size-3.5" />
+              SEND PAYSLIPS
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* Warnings Banner Card if any warnings exist (Matches Excalidraw Screen 4) */}
-      {payrun.warnings && payrun.warnings.length > 0 && (
-        <Card className="border-amber-500/40 bg-amber-500/5">
-          <CardContent className="p-4 flex items-start gap-3">
-            <AlertTriangle className="size-5 text-amber-500 shrink-0 mt-0.5" />
-            <div className="space-y-1 text-xs">
-              <p className="font-bold text-amber-900 dark:text-amber-200">
-                Compliance & Validation Warnings Prior to Finalization
-              </p>
-              <div className="flex flex-wrap gap-2 pt-1">
-                {payrun.warnings.map((w, i) => (
-                  <Badge key={i} variant="warning" className="text-xs">
-                    {w}
-                  </Badge>
-                ))}
+      {/* Send Payslips Confirmation Modal (Admin & HR Manager privilege) */}
+      <Dialog open={isSendModalOpen} onOpenChange={setIsSendModalOpen}>
+        <DialogContent className="max-w-md" onClose={() => setIsSendModalOpen(false)}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Mail className="size-5 text-primary" />
+              <span>Email Payslips to Credited Employees</span>
+            </DialogTitle>
+            <DialogDescription>
+              Generate and email official PDF payslips for this payrun batch.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 py-2 text-xs">
+            <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Payrun Batch:</span>
+                <span className="font-semibold text-foreground">{payrun.name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Employees:</span>
+                <span className="font-semibold text-foreground font-mono">{batchPayslips.length} Employees</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Disbursement Status:</span>
+                <Badge variant="success" className="text-[10px]">SALARY CREDITED (PAID)</Badge>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Document Format:</span>
+                <span className="font-semibold text-foreground">Official PDF Attachment</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
+
+            <div className="flex items-start gap-2 p-3 rounded-lg border border-blue-500/20 bg-blue-500/5 text-blue-900 dark:text-blue-300">
+              <CheckCircle2 className="size-4 shrink-0 text-blue-500 mt-0.5" />
+              <p className="text-[11px] leading-relaxed">
+                Official PDF payslips will be dynamically rendered and dispatched to all <strong>{batchPayslips.length}</strong> employees whose salary has been credited.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setIsSendModalOpen(false)} disabled={isSendingBulk}>
+              Cancel
+            </Button>
+            <Button size="sm" onClick={handleConfirmSendBulk} disabled={isSendingBulk} className="gap-1.5 font-semibold">
+              {isSendingBulk ? (
+                <>
+                  <Loader2 className="size-3.5 animate-spin" />
+                  Generating & Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="size-3.5" />
+                  Send to All Employees
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
 
       {/* Batch Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -225,50 +443,86 @@ export default function PayrunProcessingPage({ params }: { params: Promise<{ id:
                 <th className="py-3 px-4 text-right">Basic</th>
                 <th className="py-3 px-4 text-right">Gross</th>
                 <th className="py-3 px-4 text-right">Net</th>
-                <th className="py-3 px-4 text-center">Warning</th>
+                <th className="py-3 px-4 text-center">Delivery</th>
                 <th className="py-3 px-4 text-center">PDF</th>
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {batchPayslips.map((ps) => (
-                <tr key={ps.id} className="hover:bg-muted/40 transition-colors">
-                  <td className="py-3.5 px-4 font-bold text-foreground">{ps.employeeName}</td>
-                  <td className="py-3.5 px-4 text-muted-foreground">{ps.department}</td>
-                  <td className="py-3.5 px-4 text-center font-mono font-medium">{ps.workedDays}</td>
-                  <td className="py-3.5 px-4 text-right font-mono text-muted-foreground">
-                    {formatCurrency(ps.basic)}
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-medium text-foreground">
-                    {formatCurrency(ps.gross)}
-                  </td>
-                  <td className="py-3.5 px-4 text-right font-mono font-bold text-primary">
-                    {formatCurrency(ps.net)}
-                  </td>
-                  <td className="py-3.5 px-4 text-center">
-                    {ps.warnings && ps.warnings.length > 0 ? (
-                      <Badge variant="warning" className="text-[10px]">
-                        {ps.warnings[0]}
-                      </Badge>
-                    ) : (
-                      <span className="text-[10px] text-muted-foreground font-mono">—</span>
-                    )}
-                  </td>
-                  <td className="py-3.5 px-4 text-center">
-                    <Link href={`/payroll/payslips?id=${encodeURIComponent(ps.id)}`}>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer">
-                        <Printer className="size-3" />
-                        <span>Print</span>
-                      </span>
-                    </Link>
-                  </td>
-                  <td className="py-3.5 px-4 text-right">
-                    <Link href={`/payroll/payslips?id=${encodeURIComponent(ps.id)}`}>
-                      <span className="text-primary hover:underline font-semibold">Inspect</span>
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {batchPayslips.map((ps) => {
+                const numericSlipId = ps.id.replace(/\D/g, "");
+                return (
+                  <tr key={ps.id} className="hover:bg-muted/40 transition-colors">
+                    <td className="py-3.5 px-4 font-bold text-foreground">{ps.employeeName}</td>
+                    <td className="py-3.5 px-4 text-muted-foreground">{ps.department}</td>
+                    <td className="py-3.5 px-4 text-center font-mono font-medium">{ps.workedDays}</td>
+                    <td className="py-3.5 px-4 text-right font-mono text-muted-foreground">
+                      {formatCurrency(ps.basic)}
+                    </td>
+                    <td className="py-3.5 px-4 text-right font-mono font-medium text-foreground">
+                      {formatCurrency(ps.gross)}
+                    </td>
+                    <td className="py-3.5 px-4 text-right font-mono font-bold text-primary">
+                      {formatCurrency(ps.net)}
+                    </td>
+                    <td className="py-3.5 px-4 text-center">
+                      {ps.emailSentAt ? (
+                        <Badge variant="success" className="text-[10px] gap-1">
+                          <CheckCircle2 className="size-2.5" />
+                          Sent
+                        </Badge>
+                      ) : isPaid ? (
+                        <Badge variant="outline" className="text-[10px] text-amber-600 dark:text-amber-400 border-amber-500/30">
+                          Pending
+                        </Badge>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground font-mono">Uncredited</span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 text-center">
+                      <div className="inline-flex items-center gap-2">
+                        <Link href={`/payroll/payslips?id=${encodeURIComponent(ps.id)}`}>
+                          <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer">
+                            <Printer className="size-3" />
+                            <span>Print</span>
+                          </span>
+                        </Link>
+                        {isPaid && (
+                          <a
+                            href={`/api/payslips/${numericSlipId || ps.id}/pdf?download=pdf`}
+                            download
+                            className="text-[11px] font-semibold text-emerald-600 hover:underline inline-flex items-center gap-0.5"
+                          >
+                            PDF
+                          </a>
+                        )}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link href={`/payroll/payslips?id=${encodeURIComponent(ps.id)}`}>
+                          <span className="text-primary hover:underline font-semibold">Inspect</span>
+                        </Link>
+                        {canSendPayslips && isPaid && (
+                          <button
+                            onClick={() => handleSendSingle(numericSlipId || ps.id)}
+                            disabled={sendingSingleId === (numericSlipId || ps.id)}
+                            className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1 disabled:opacity-50"
+                            title="Email payslip to this employee"
+                          >
+                            {sendingSingleId === (numericSlipId || ps.id) ? (
+                              <Loader2 className="size-3 animate-spin" />
+                            ) : (
+                              <Mail className="size-3" />
+                            )}
+                            <span>Email</span>
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

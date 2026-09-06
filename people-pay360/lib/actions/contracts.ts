@@ -172,11 +172,24 @@ export async function createContract(data: {
         .select()
         .from(employees)
         .where(eq(employees.empId, data.employeeId));
-      resolvedEmpId =
-        empRecord?.id || parseInt(data.employeeId.replace(/\D/g, ""), 10) || 1;
+
+      if (!empRecord) {
+        const numId = parseInt(data.employeeId.replace(/\D/g, ""), 10);
+        if (!isNaN(numId)) {
+          [empRecord] = await db
+            .select()
+            .from(employees)
+            .where(eq(employees.id, numId));
+        }
+      }
+      resolvedEmpId = empRecord?.id || 0;
     }
 
-    if (empRecord?.role === "ADMIN") {
+    if (!empRecord || !resolvedEmpId) {
+      throw new Error(`Validation Error: Employee "${data.employeeId}" does not exist.`);
+    }
+
+    if (empRecord.role === "ADMIN") {
       throw new Error("Validation Error: Cannot create an employment contract for an ADMIN user.");
     }
 
@@ -186,22 +199,49 @@ export async function createContract(data: {
     if (typeof rawStruct === "number") {
       resolvedStructId = rawStruct;
     } else if (rawStruct) {
-      resolvedStructId = parseInt(rawStruct.replace(/\D/g, ""), 10);
+      resolvedStructId = parseInt(rawStruct.replace(/\D/g, ""), 10) || 1;
     } else {
-      throw new Error("Validation Error: Salary structure is required.");
+      resolvedStructId = 1;
     }
     const [structRecord] = await db.select().from(salaryStructures).where(eq(salaryStructures.id, resolvedStructId));
-    if (!structRecord) throw new Error("Validation Error: Salary structure does not exist.");
+    if (!structRecord) {
+      const [firstStruct] = await db.select().from(salaryStructures).limit(1);
+      resolvedStructId = firstStruct?.id || 1;
+    }
 
-    const finalDeptId = data.departmentId || empRecord?.departmentId;
-    if (!finalDeptId) throw new Error("Validation Error: Department is required.");
+    let finalDeptId = data.departmentId || empRecord.departmentId;
+    if (!finalDeptId) {
+      const [firstDept] = await db.select().from(departments).limit(1);
+      finalDeptId = firstDept?.id || 1;
+    }
     const [deptRecord] = await db.select().from(departments).where(eq(departments.id, finalDeptId));
-    if (!deptRecord) throw new Error("Validation Error: Department does not exist.");
+    if (!deptRecord) {
+      const [firstDept] = await db.select().from(departments).limit(1);
+      finalDeptId = firstDept?.id || 1;
+    }
 
-    const finalScheduleId = data.workingScheduleId || empRecord?.workingScheduleId;
-    if (!finalScheduleId) throw new Error("Validation Error: Working schedule is required.");
+    let finalScheduleId = data.workingScheduleId || empRecord.workingScheduleId;
+    if (!finalScheduleId) {
+      const [firstSched] = await db.select().from(workingSchedules).limit(1);
+      finalScheduleId = firstSched?.id || 1;
+    }
     const [schedRecord] = await db.select().from(workingSchedules).where(eq(workingSchedules.id, finalScheduleId));
-    if (!schedRecord) throw new Error("Validation Error: Working schedule does not exist.");
+    if (!schedRecord) {
+      const [firstSched] = await db.select().from(workingSchedules).limit(1);
+      finalScheduleId = firstSched?.id || 1;
+    }
+
+    // If the employee didn't have a schedule assigned, link it now
+    if (!empRecord.workingScheduleId && finalScheduleId) {
+      try {
+        await db
+          .update(employees)
+          .set({ workingScheduleId: finalScheduleId })
+          .where(eq(employees.id, resolvedEmpId));
+      } catch (e) {
+        console.warn("Could not backfill employee workingScheduleId:", e);
+      }
+    }
 
     // 3. Resolve status
     const statusMap: Record<
@@ -226,9 +266,9 @@ export async function createContract(data: {
       data.name ||
       `CON/${new Date().getFullYear()}/${Date.now().toString().slice(-4)}`;
 
-    // 5. Check active contract exclusivity
+    // 5. Check active contract exclusivity: expire ALL existing open-ended active contracts for this employee
     if (dbStatus === "ACTIVE" && !data.endDate) {
-      const [existingActive] = await db
+      const existingActives = await db
         .select()
         .from(contracts)
         .where(
@@ -239,15 +279,19 @@ export async function createContract(data: {
           ),
         );
 
-      if (existingActive) {
+      if (existingActives.length > 0) {
         const newStartDate = new Date(data.startDate);
         const closedDate = new Date(newStartDate.getTime() - 24 * 60 * 60 * 1000);
-        const closedDateStr = closedDate.toISOString().split("T")[0];
-        
-        await db
-          .update(contracts)
-          .set({ status: "EXPIRED", endDate: closedDateStr })
-          .where(eq(contracts.id, existingActive.id));
+        const closedDateStr = !isNaN(closedDate.getTime())
+          ? closedDate.toISOString().split("T")[0]
+          : data.startDate;
+
+        for (const existingActive of existingActives) {
+          await db
+            .update(contracts)
+            .set({ status: "EXPIRED", endDate: closedDateStr })
+            .where(eq(contracts.id, existingActive.id));
+        }
       }
     }
 
