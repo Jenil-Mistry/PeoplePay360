@@ -6,6 +6,7 @@ import {
   timeOffAllocations,
   timeOffRequests,
   employees,
+  workingScheduleLines,
 } from "@/lib/db/schema";
 import { eq, and, sql, desc, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -21,6 +22,92 @@ export async function getTimeOffTypes() {
   } catch (error) {
     console.error("Failed to get time off types:", error);
     throw new Error("Unable to fetch time off policies.");
+  }
+}
+
+export async function createTimeOffType(data: {
+  name: string;
+  unit: "DAYS" | "HOURS";
+  requiresAllocation: boolean;
+  includeInPayroll: boolean;
+}) {
+  try {
+    await requireWriteAccess("time_off_types");
+
+    const [newType] = await db
+      .insert(timeOffTypes)
+      .values({
+        name: data.name,
+        unit: data.unit,
+        requiresAllocation: data.requiresAllocation,
+        includeInPayroll: data.includeInPayroll,
+        isActive: true,
+      })
+      .returning();
+
+    try {
+      revalidatePath("/time-off/types");
+      revalidatePath("/dashboard");
+    } catch {}
+
+    return { success: true, record: newType };
+  } catch (error: any) {
+    console.error("Failed to create time off type:", error);
+    return { success: false, error: error.message || "Failed to create policy." };
+  }
+}
+
+export async function updateTimeOffType(id: number | string, data: {
+  name?: string;
+  unit?: "DAYS" | "HOURS";
+  requiresAllocation?: boolean;
+  includeInPayroll?: boolean;
+}) {
+  try {
+    await requireWriteAccess("time_off_types");
+
+    const rawId = typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
+
+    const [updated] = await db
+      .update(timeOffTypes)
+      .set(data)
+      .where(eq(timeOffTypes.id, rawId))
+      .returning();
+
+    try {
+      revalidatePath("/time-off/types");
+      revalidatePath("/dashboard");
+    } catch {}
+
+    return { success: true, record: updated };
+  } catch (error: any) {
+    console.error("Failed to update time off type:", error);
+    return { success: false, error: error.message || "Failed to update policy." };
+  }
+}
+
+export async function deleteTimeOffType(id: number | string) {
+  try {
+    await requireWriteAccess("time_off_types");
+
+    const rawId = typeof id === "string" ? parseInt(id.replace(/\D/g, ""), 10) : id;
+
+    // Soft delete
+    const [deleted] = await db
+      .update(timeOffTypes)
+      .set({ isActive: false })
+      .where(eq(timeOffTypes.id, rawId))
+      .returning();
+
+    try {
+      revalidatePath("/time-off/types");
+      revalidatePath("/dashboard");
+    } catch {}
+
+    return { success: true, record: deleted };
+  } catch (error: any) {
+    console.error("Failed to delete time off type:", error);
+    return { success: false, error: error.message || "Failed to delete policy." };
   }
 }
 
@@ -270,22 +357,50 @@ export async function createTimeOffRequest(data: {
           : parseInt(data.allocationId.replace(/\D/g, ""), 10) || null;
     }
 
-    // Server-side date calculation: calculate days skipping weekends
+    // Server-side date calculation: calculate days skipping off-days based on schedule
     const start = new Date(data.startDate);
     const end = new Date(data.endDate);
     if (end < start) {
       return { success: false, error: "End date cannot be before start date." };
     }
+
+    // Block overlapping requests
+    const overlapping = await db
+      .select({ id: timeOffRequests.id })
+      .from(timeOffRequests)
+      .where(
+        and(
+          eq(timeOffRequests.employeeId, resolvedEmpId),
+          inArray(timeOffRequests.status, ["PENDING", "APPROVED"]),
+          sql`(${timeOffRequests.startDate} <= ${data.endDate} AND ${timeOffRequests.endDate} >= ${data.startDate})`
+        )
+      );
+    if (overlapping.length > 0) {
+      return { success: false, error: "You already have a pending or approved request during this period." };
+    }
+
+    const workingDays = new Set([1, 2, 3, 4, 5]); // Default Mon-Fri
+    const [empRecord] = await db.select({ workingScheduleId: employees.workingScheduleId }).from(employees).where(eq(employees.id, resolvedEmpId));
+    if (empRecord?.workingScheduleId) {
+      const scheduleLines = await db.select().from(workingScheduleLines).where(eq(workingScheduleLines.scheduleId, empRecord.workingScheduleId));
+      if (scheduleLines.length > 0) {
+        workingDays.clear();
+        const map = { "SUN": 0, "MON": 1, "TUE": 2, "WED": 3, "THU": 4, "FRI": 5, "SAT": 6 };
+        scheduleLines.forEach(line => {
+          if (line.dayOfWeek in map) workingDays.add(map[line.dayOfWeek as keyof typeof map]);
+        });
+      }
+    }
+
     let calculatedDays = 0;
     const current = new Date(start);
     while (current <= end) {
-      const dayOfWeek = current.getDay();
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Skip Sunday(0) and Saturday(6)
+      if (workingDays.has(current.getDay())) {
         calculatedDays++;
       }
       current.setDate(current.getDate() + 1);
     }
-    calculatedDays = Math.max(1, calculatedDays);
+    calculatedDays = Math.max(1, calculatedDays); // If someone requests a weekend only, count as 1 to avoid 0 unit deduction
     const units = calculatedDays.toFixed(2);
     const notes = data.reason || data.notes || "Leave request";
 
@@ -355,54 +470,72 @@ export async function approveTimeOffRequest(requestId: number | string) {
       .from(timeOffTypes)
       .where(eq(timeOffTypes.id, req.timeOffTypeId));
 
-    const [updatedReq] = await db
-      .update(timeOffRequests)
-      .set({
-        status: "APPROVED",
-        approvedBy: currentUser.employeeDbId,
-        approvedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(timeOffRequests.id, rawId),
-          eq(timeOffRequests.status, "PENDING") // Prevent race condition: only approve if still pending
-        )
-      )
-      .returning();
-
-    if (!updatedReq) {
-      return { success: false, error: "Request was already processed by another user." };
-    }
-
-    if (type?.requiresAllocation) {
+    const result = await db.transaction(async (tx) => {
       let targetAllocationId = req.allocationId;
 
-      if (!targetAllocationId) {
-        const [activeAlloc] = await db
-          .select()
+      if (type?.requiresAllocation) {
+        if (!targetAllocationId) {
+          const [activeAlloc] = await tx
+            .select()
+            .from(timeOffAllocations)
+            .where(
+              and(
+                eq(timeOffAllocations.employeeId, req.employeeId),
+                eq(timeOffAllocations.timeOffTypeId, req.timeOffTypeId),
+                eq(timeOffAllocations.status, "APPROVED"),
+              ),
+            )
+            .limit(1);
+
+          targetAllocationId = activeAlloc?.id;
+        }
+
+        if (!targetAllocationId) {
+          throw new Error("No active allocation found to deduct balance from.");
+        }
+
+        // Verify balance
+        const [allocCheck] = await tx
+          .select({ allocated: timeOffAllocations.allocatedUnits, used: timeOffAllocations.usedUnits })
           .from(timeOffAllocations)
-          .where(
-            and(
-              eq(timeOffAllocations.employeeId, req.employeeId),
-              eq(timeOffAllocations.timeOffTypeId, req.timeOffTypeId),
-              eq(timeOffAllocations.status, "APPROVED"),
-            ),
-          )
-          .limit(1);
+          .where(eq(timeOffAllocations.id, targetAllocationId));
+          
+        const available = parseFloat(allocCheck.allocated.toString()) - parseFloat(allocCheck.used.toString());
+        const needed = parseFloat(req.requestedUnits.toString());
+        if (available < needed) {
+          throw new Error(`Insufficient balance. Needed: ${needed}, Available: ${available}`);
+        }
 
-        targetAllocationId = activeAlloc?.id;
-      }
-
-      if (targetAllocationId) {
-        const units = parseFloat(req.requestedUnits.toString());
-        await db
+        await tx
           .update(timeOffAllocations)
           .set({
-            usedUnits: sql`${timeOffAllocations.usedUnits} + ${units}`,
+            usedUnits: sql`${timeOffAllocations.usedUnits} + ${needed}`,
           })
           .where(eq(timeOffAllocations.id, targetAllocationId));
       }
-    }
+
+      const [updatedReq] = await tx
+        .update(timeOffRequests)
+        .set({
+          status: "APPROVED",
+          approvedBy: currentUser.employeeDbId,
+          approvedAt: new Date(),
+          allocationId: targetAllocationId,
+        })
+        .where(
+          and(
+            eq(timeOffRequests.id, rawId),
+            eq(timeOffRequests.status, "PENDING") // Prevent race condition
+          )
+        )
+        .returning();
+
+      if (!updatedReq) {
+        throw new Error("Request was already processed by another user.");
+      }
+      
+      return updatedReq;
+    });
 
     try {
       revalidatePath("/time-off/requests");
@@ -410,7 +543,7 @@ export async function approveTimeOffRequest(requestId: number | string) {
       revalidatePath("/dashboard");
     } catch {}
 
-    return { success: true, request: updatedReq };
+    return { success: true, request: result };
   } catch (error: any) {
     console.error(`Failed to approve leave request ${requestId}:`, error);
     return {
@@ -449,8 +582,17 @@ export async function refuseTimeOffRequest(requestId: number | string) {
         approvedBy: currentUser.employeeDbId,
         approvedAt: new Date(),
       })
-      .where(eq(timeOffRequests.id, rawId))
+      .where(
+        and(
+          eq(timeOffRequests.id, rawId),
+          eq(timeOffRequests.status, "PENDING")
+        )
+      )
       .returning();
+      
+    if (!updatedReq) {
+      return { success: false, error: "Request is no longer pending or cannot be found." };
+    }
 
     try {
       revalidatePath("/time-off/requests");
