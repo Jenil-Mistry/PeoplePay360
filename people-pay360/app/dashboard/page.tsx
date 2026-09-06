@@ -43,7 +43,11 @@ export default function DashboardPage() {
     try {
       setMetricsLoading(true);
       const [metricsResult, alertsResult] = await Promise.all([
-        getDashboardMetrics(),
+        getDashboardMetrics({
+          payrunName: selectedPeriod,
+          departmentName: selectedDept,
+          employeeType: selectedEmpType,
+        }),
         getOperationalAlerts(),
       ]);
       setMetrics(metricsResult);
@@ -53,7 +57,7 @@ export default function DashboardPage() {
     } finally {
       setMetricsLoading(false);
     }
-  }, []);
+  }, [selectedPeriod, selectedDept, selectedEmpType]);
 
   useEffect(() => {
     refreshMetrics();
