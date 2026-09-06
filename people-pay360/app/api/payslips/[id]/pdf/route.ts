@@ -289,6 +289,15 @@ export async function GET(
       </div>
       <div class="net-amount">${formatCurrency(parseFloat(payslip.netSalary))}</div>
     </div>
+    
+    ${payslip.warnings && payslip.warnings.length > 0 ? `
+    <div style="margin-top: 20px; border: 1px solid #f87171; background-color: #fef2f2; border-radius: 6px; padding: 12px;">
+      <div style="color: #b91c1c; font-weight: 700; font-size: 12px; margin-bottom: 6px;">⚠️ Payslip Computation Warnings</div>
+      <ul style="margin: 0; padding-left: 18px; color: #7f1d1d; font-size: 11px;">
+        ${payslip.warnings.map(w => `<li>${w.message}</li>`).join('')}
+      </ul>
+    </div>
+    ` : ''}
 
     <div class="footer-note">
       This is a system-generated document authorized under PeoplePay360 Operations. No signature required.

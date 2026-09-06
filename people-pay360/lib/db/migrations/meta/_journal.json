@@ -22,6 +22,13 @@
       "when": 1788651612282,
       "tag": "0002_watery_silk_fever",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1788655861228,
+      "tag": "0003_nice_king_cobra",
+      "breakpoints": true
     }
   ]
 }

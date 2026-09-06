@@ -15,24 +15,52 @@ import { requireReadAccess } from "./auth-helpers";
 import { canAccessModule } from "@/lib/rbac";
 
 export async function getDashboardMetrics(filters?: {
-  departmentId?: number;
-  employeeType?: "FULL_TIME" | "PART_TIME" | "CONTRACTOR" | "INTERN";
-  payrunId?: number;
+  departmentName?: string;
+  employeeType?: "FULL_TIME" | "PART_TIME" | "CONTRACTOR" | "INTERN" | "All Types" | string;
+  payrunName?: string;
 }) {
   try {
     const user = await requireReadAccess("dashboard");
     const canViewAll = canAccessModule(user.role, "employees");
+
+    // Resolve department ID from name if provided
+    let resolvedDepartmentId: number | undefined;
+    if (filters?.departmentName && filters.departmentName !== "All Departments") {
+      const [dept] = await db
+        .select({ id: departments.id })
+        .from(departments)
+        .where(eq(departments.name, filters.departmentName));
+      if (dept) resolvedDepartmentId = dept.id;
+    }
+
+    // Resolve payrun ID from name if provided
+    let resolvedPayrunId: number | undefined;
+    if (filters?.payrunName) {
+      const [pr] = await db
+        .select({ id: payruns.id })
+        .from(payruns)
+        .where(eq(payruns.name, filters.payrunName));
+      if (pr) resolvedPayrunId = pr.id;
+    }
 
     // 1. Resolve filtered employees
     const empConditions = [];
     if (!canViewAll) {
       empConditions.push(eq(employees.id, user.employeeDbId));
     }
-    if (filters?.departmentId) {
-      empConditions.push(eq(employees.departmentId, filters.departmentId));
+    if (resolvedDepartmentId) {
+      empConditions.push(eq(employees.departmentId, resolvedDepartmentId));
     }
-    if (filters?.employeeType) {
-      empConditions.push(eq(employees.employeeType, filters.employeeType));
+    
+    // Map UI types to DB types
+    if (filters?.employeeType && filters.employeeType !== "All Types") {
+      const typeMap: Record<string, any> = {
+        "Full-Time": "FULL_TIME",
+        "Contractor": "CONTRACTOR",
+        "Part-Time": "PART_TIME"
+      };
+      const dbType = typeMap[filters.employeeType] || filters.employeeType;
+      empConditions.push(eq(employees.employeeType, dbType));
     }
 
     const filteredEmployees = await db
@@ -62,9 +90,13 @@ export async function getDashboardMetrics(filters?: {
 
     if (empIds.length > 0) {
       allPayslips = allPayslips.filter((p) => empIds.includes(p.employeeId));
+    } else if (filteredEmployees.length === 0 && (resolvedDepartmentId || filters?.employeeType && filters.employeeType !== "All Types")) {
+      // If filters yield no employees, there are no payslips
+      allPayslips = [];
     }
-    if (filters?.payrunId) {
-      allPayslips = allPayslips.filter((p) => p.payrunId === filters.payrunId);
+    
+    if (resolvedPayrunId) {
+      allPayslips = allPayslips.filter((p) => p.payrunId === resolvedPayrunId);
     }
 
     const totalNetSalaryPaid = allPayslips

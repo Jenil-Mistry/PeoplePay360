@@ -43,7 +43,11 @@ export default function DashboardPage() {
     try {
       setMetricsLoading(true);
       const [metricsResult, alertsResult] = await Promise.all([
-        getDashboardMetrics(),
+        getDashboardMetrics({
+          payrunName: selectedPeriod,
+          departmentName: selectedDept,
+          employeeType: selectedEmpType,
+        }),
         getOperationalAlerts(),
       ]);
       setMetrics(metricsResult);
@@ -53,7 +57,7 @@ export default function DashboardPage() {
     } finally {
       setMetricsLoading(false);
     }
-  }, []);
+  }, [selectedPeriod, selectedDept, selectedEmpType]);
 
   useEffect(() => {
     refreshMetrics();
@@ -378,46 +382,8 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Right 1 Column: Operational Alerts, Attendance Health & Leave Math */}
+        {/* Right 1 Column: Attendance Health & Leave Math */}
         <div className="space-y-6">
-          {/* Operational Alerts Card (Matches Excalidraw Section 6) */}
-          <Card className="border-amber-500/30 bg-amber-500/5">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="size-4 text-amber-500" />
-                  <CardTitle className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                    Operational Alerts
-                  </CardTitle>
-                </div>
-                <Badge variant="warning">{operationalAlerts.length} Action Items</Badge>
-              </div>
-              <CardDescription className="text-amber-700/80 dark:text-amber-300/80">
-                Critical warnings requiring review before disbursement
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2.5">
-              {operationalAlerts.length === 0 ? (
-                <div className="flex items-center justify-center py-6 text-xs text-muted-foreground">
-                  <CheckCircle2 className="size-4 mr-2 text-emerald-500" />
-                  All systems clear! No operational alerts.
-                </div>
-              ) : (
-                operationalAlerts.map((alert) => (
-                  <Link key={alert.key} href={alert.linkTarget || "/dashboard"} className="block">
-                    <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-card border border-border shadow-2xs text-xs hover:border-primary/30 transition-colors">
-                      <span className={`size-2 rounded-full mt-1 shrink-0 ${
-                        alert.severity === "critical" ? "bg-red-500" :
-                        alert.severity === "warning" ? "bg-amber-500" : "bg-blue-500"
-                      }`} />
-                      <span className="text-foreground font-medium">{alert.message}</span>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
           {/* Attendance Overview (Matches Excalidraw & PDF) */}
           <Card>
             <CardHeader className="pb-3">

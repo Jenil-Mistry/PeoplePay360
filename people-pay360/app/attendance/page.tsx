@@ -36,19 +36,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 
-export default function AttendancePage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="p-8 text-center text-xs text-muted-foreground">
-          Loading attendance ledger...
-        </div>
-      }
-    >
-      <AttendanceContent />
-    </Suspense>
-  );
-}
+// Export moved to bottom
 
 function AttendanceContent() {
   const searchParams = useSearchParams();
@@ -223,6 +211,12 @@ function AttendanceContent() {
       return matchesSearch && matchesStatus && matchesToday;
     });
   }, [attendance, searchQuery, statusFilter, todayOnly, todayStr, scheduledShiftTime]);
+
+  const [page, setPage] = useState(1);
+  const limit = 15;
+  const total = filteredAttendance.length;
+  const isLoading = false; // Always false since data is from store
+  const paginatedAttendance = filteredAttendance.slice((page - 1) * limit, page * limit);
 
   const handleOpenRecord = (rec: AttendanceRecord) => {
     const tol = evaluateCheckInTolerance(rec.checkIn, scheduledShiftTime);
@@ -652,7 +646,7 @@ function AttendanceContent() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {filteredAttendance.map((rec) => {
+            {paginatedAttendance.map((rec) => {
               const tol = evaluateCheckInTolerance(rec.checkIn, scheduledShiftTime);
               // Dynamic status strictly derived from checkIn
               const effectiveStatus: AttendanceStatus = rec.checkIn ? tol.status : (rec.status || "Absent");
@@ -749,6 +743,18 @@ function AttendanceContent() {
           </tbody>
         </table>
       </div>
+
+      {!isLoading && total > limit && (
+        <div className="border-t border-border p-4 flex items-center justify-between bg-card text-xs mt-4 rounded-xl border shadow-xs">
+          <span className="text-muted-foreground">
+            Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} records
+          </span>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>Previous</Button>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page * limit >= total}>Next</Button>
+          </div>
+        </div>
+      )}
 
       {/* Attendance Form & Correction Modal */}
       {(() => {
@@ -971,5 +977,19 @@ function AttendanceContent() {
         );
       })()}
     </div>
+  );
+}
+
+export default function AttendancePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-xs text-muted-foreground">
+          Loading attendance ledger...
+        </div>
+      }
+    >
+      <AttendanceContent />
+    </Suspense>
   );
 }

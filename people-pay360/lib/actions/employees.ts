@@ -21,6 +21,8 @@ export async function getEmployees(filters?: {
   departmentId?: number;
   employeeType?: "FULL_TIME" | "PART_TIME" | "CONTRACTOR" | "INTERN";
   search?: string;
+  page?: number;
+  limit?: number;
 }) {
   try {
     const user = await requireReadAccess("employees");
@@ -79,11 +81,29 @@ export async function getEmployees(filters?: {
       )
       .orderBy(desc(employees.id));
 
+    let totalCount = 0;
+    
+    // Calculate total count
+    const countQuery = db.select({ count: sql<number>`count(*)` }).from(employees);
     if (conditions.length > 0) {
-      return await query.where(and(...conditions));
+      countQuery.where(and(...conditions));
+    }
+    const [{ count }] = await countQuery;
+    totalCount = Number(count);
+
+    if (conditions.length > 0) {
+      query.where(and(...conditions));
     }
 
-    return await query;
+    // Apply pagination
+    const limit = filters?.limit || 50;
+    const page = filters?.page || 1;
+    const offset = (page - 1) * limit;
+
+    query.limit(limit).offset(offset);
+
+    const data = await query;
+    return { data, total: totalCount, page, limit };
   } catch (error) {
     console.error("Failed to get employees:", error);
     throw new Error("Unable to fetch employees.");

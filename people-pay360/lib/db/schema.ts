@@ -357,7 +357,9 @@ export const payruns = pgTable("payruns", {
   validatedAt: timestamp("validated_at"),
   paidAt: timestamp("paid_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (table) => [
+  index("payruns_status_idx").on(table.status),
+]);
 
 export const payslips = pgTable("payslips", {
   id: serial("id").primaryKey(),

@@ -20,9 +20,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmployeeModal } from "@/components/employees/employee-modal";
+import { getEmployees } from "@/lib/actions/employees";
 
 export default function EmployeesPage() {
-  const { employees } = useAppStore();
+  const { employees: globalEmployees } = useAppStore(); // Fallback/reference if needed
+  const [serverEmployees, setServerEmployees] = useState<any[]>([]);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const limit = 12; // Kanban looks good with 12 (3 rows of 4)
 
   const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
   const [searchQuery, setSearchQuery] = useState("");
@@ -31,16 +37,57 @@ export default function EmployeesPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateMode, setIsCreateMode] = useState(false);
 
-  const filteredEmployees = useMemo(() => {
-    return employees.filter((emp) => {
-      const matchesSearch =
-        emp.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        emp.jobPosition.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        emp.workEmail.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesDept = selectedDept === "All" || emp.department === selectedDept;
-      return matchesSearch && matchesDept;
-    });
-  }, [employees, searchQuery, selectedDept]);
+  React.useEffect(() => {
+    async function load() {
+      setIsLoading(true);
+      try {
+        const deptMap: Record<string, number> = {
+          "Engineering": 2,
+          "HR": 3,
+          "Sales": 4,
+          "Management": 6,
+        };
+
+        const res = await getEmployees({
+          page,
+          limit,
+          search: searchQuery,
+          departmentId: selectedDept === "All" ? undefined : deptMap[selectedDept]
+        });
+        
+        // Map backend objects to the expected frontend Employee format
+        const mapped = res.data.map(emp => ({
+          id: emp.id.toString(),
+          name: emp.name,
+          workEmail: emp.email,
+          phone: "N/A",
+          jobPosition: emp.jobPosition,
+          department: emp.departmentName || "General",
+          managerId: emp.managerId?.toString(),
+          scheduleId: emp.workingScheduleId?.toString(),
+          role: emp.role,
+          status: emp.isActive ? "Active" : "Inactive",
+          company: "PeoplePay360",
+          workLocation: "Office",
+          bankDetails: emp.bankAccountNumber ? { bankName: emp.bankName, accountNumber: emp.bankAccountNumber, ifscCode: "" } : undefined
+        }));
+        setServerEmployees(mapped);
+        setTotal(res.total);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    // Add debounce for search query
+    const timeoutId = setTimeout(() => {
+      load();
+    }, 300);
+    return () => clearTimeout(timeoutId);
+  }, [page, limit, searchQuery, selectedDept]);
+
+  const filteredEmployees = serverEmployees;
 
   const handleOpenEmployee = (emp: Employee) => {
     setSelectedEmployee(emp);
@@ -102,22 +149,22 @@ export default function EmployeesPage() {
       {/* Filter and Search Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search employees by name, role, email..."
-            className="h-9 w-full rounded-lg border border-border bg-card pl-9 pr-4 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-          />
-        </div>
+            <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+              placeholder="Search employees by name, role, email..."
+              className="h-9 w-full rounded-lg border border-border bg-card pl-9 pr-4 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            />
+          </div>
 
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5 overflow-x-auto py-1 text-xs">
-            {["All", "Finance", "Engineering", "HR", "Sales", "Operations", "Management"].map((dept) => (
+            {["All", "Engineering", "HR", "Sales", "Management"].map((dept) => (
               <button
                 key={dept}
-                onClick={() => setSelectedDept(dept)}
+                onClick={() => { setSelectedDept(dept); setPage(1); }}
                 className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
                   selectedDept === dept
                     ? "bg-primary text-primary-foreground font-semibold"
@@ -132,12 +179,16 @@ export default function EmployeesPage() {
       </div>
 
       {/* Kanban View (Matches Excalidraw Screen 1: AM Aarav Mehta, SK Sara Khan, etc.) */}
-      {viewMode === "kanban" ? (
+      {isLoading ? (
+        <div className="flex justify-center items-center py-12">
+           <span className="text-muted-foreground">Loading...</span>
+        </div>
+      ) : viewMode === "kanban" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {filteredEmployees.map((emp) => {
             const initials = emp.name
               .split(" ")
-              .map((n) => n[0])
+              .map((n: string) => n[0])
               .join("")
               .toUpperCase();
 
@@ -226,6 +277,23 @@ export default function EmployeesPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {!isLoading && total > limit && (
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-xs text-muted-foreground">
+            Showing {(page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} results
+          </p>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}>
+              Previous
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setPage(p => p + 1)} disabled={page * limit >= total}>
+              Next
+            </Button>
+          </div>
         </div>
       )}
 
