@@ -443,8 +443,6 @@ export async function recordCheckIn(data: {
   employeeId: number | string;
   date?: string;
   checkInTime?: string;
-  scheduledTime?: string;
-  status?: "PRESENT" | "LATE" | "ABSENT" | "Present" | "Late" | "Absent";
   notes?: string;
 }) {
   const dateStr = data.date || new Date().toISOString().split("T")[0];
@@ -452,12 +450,28 @@ export async function recordCheckIn(data: {
   const timeStr =
     data.checkInTime ||
     `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
-  const scheduledTime = data.scheduledTime || "09:00";
+
+  let scheduledStartMinutes = 9 * 60; // fallback only if no schedule exists
+  const rawId = typeof data.employeeId === "number" ? data.employeeId : parseInt(data.employeeId.toString().replace(/\\D/g, ""), 10);
+  
+  const [empRecord] = await db.select({ workingScheduleId: employees.workingScheduleId }).from(employees).where(eq(employees.id, rawId));
+  
+  if (empRecord?.workingScheduleId) {
+    const dayOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][new Date(dateStr).getDay()];
+    const [scheduleLine] = await db
+      .select({ startTime: workingScheduleLines.startTime })
+      .from(workingScheduleLines)
+      .where(and(eq(workingScheduleLines.scheduleId, empRecord.workingScheduleId), eq(workingScheduleLines.dayOfWeek, dayOfWeek as any)))
+      .limit(1);
+    if (scheduleLine?.startTime) {
+      const [sh, sm] = scheduleLine.startTime.split(":").map(Number);
+      if (!isNaN(sh) && !isNaN(sm)) scheduledStartMinutes = sh * 60 + sm;
+    }
+  }
 
   // Calculate tolerance against scheduled time (+- 10 minutes)
   const [inH, inM] = timeStr.split(":").map(Number);
-  const [schH, schM] = scheduledTime.split(":").map(Number);
-  const diffMinutes = inH * 60 + inM - (schH * 60 + schM);
+  const diffMinutes = inH * 60 + inM - scheduledStartMinutes;
 
   // Late if > +10 minutes
   let calculatedStatus: "PRESENT" | "LATE" = "PRESENT";
@@ -473,24 +487,18 @@ export async function recordCheckIn(data: {
     toleranceMessage = "On time (within allowed ±10 min tolerance window).";
   }
 
-  const finalStatus: "PRESENT" | "LATE" = data.status
-    ? data.status.toUpperCase() === "LATE"
-      ? "LATE"
-      : "PRESENT"
-    : calculatedStatus;
-
   const result = await logAttendance({
     employeeId: data.employeeId,
     date: dateStr,
     checkIn: timeStr,
-    status: finalStatus,
+    status: calculatedStatus,
     notes: data.notes || `Punch in at ${timeStr}. ${toleranceMessage}`,
     isManualEdit: false,
   });
 
   return {
     ...result,
-    status: finalStatus,
+    status: calculatedStatus,
     diffMinutes,
     toleranceMessage,
     timeStr,
@@ -567,9 +575,33 @@ export async function recordCheckOut(data: {
     const [outH, outM] = outTimeStr.split(":").map(Number);
     let diffMinutes = outH * 60 + outM - (inH * 60 + inM);
     if (diffMinutes < 0) diffMinutes += 24 * 60; // Overnight shift
-    const hours = Math.max(0, diffMinutes / 60);
+    
+    // Fetch schedule for break deduction and overtime baseline
+    let breakHours = 0;
+    let expectedWorkedHours = 8;
+    const [empRecord] = await db.select({ workingScheduleId: employees.workingScheduleId }).from(employees).where(eq(employees.id, existing.employeeId));
+    if (empRecord?.workingScheduleId) {
+      const dayOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"][new Date(dateStr).getDay()];
+      const [scheduleLine] = await db
+        .select()
+        .from(workingScheduleLines)
+        .where(and(eq(workingScheduleLines.scheduleId, empRecord.workingScheduleId), eq(workingScheduleLines.dayOfWeek, dayOfWeek as any)))
+        .limit(1);
+      
+      if (scheduleLine) {
+        breakHours = scheduleLine.breakMinutes / 60;
+        const [shH, shM] = scheduleLine.startTime.split(":").map(Number);
+        const [ehH, ehM] = scheduleLine.endTime.split(":").map(Number);
+        let shiftMins = (ehH * 60 + ehM) - (shH * 60 + shM);
+        if (shiftMins < 0) shiftMins += 24 * 60;
+        expectedWorkedHours = Math.max(0, (shiftMins / 60) - breakHours);
+      }
+    }
+
+    const hours = Math.max(0, (diffMinutes / 60) - breakHours);
     workedHours = hours.toFixed(2);
-    if (hours > 8) isOvertime = true;
+    // Overtime is any time exceeding the expected work hours for that specific schedule day
+    if (hours > expectedWorkedHours) isOvertime = true;
   }
 
   const outDate = new Date(`${dateStr}T${outTimeStr}:00`);

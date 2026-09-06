@@ -753,8 +753,7 @@ function AttendanceContent() {
       {/* Attendance Form & Correction Modal */}
       {(() => {
         // Determine if this modal should be read-only
-        const isOwnRecord = isCreate || (selectedRecord && currentUserEmployee && selectedRecord.employeeId === currentUserEmployee.id);
-        const isModalReadOnly = !isCreate && !canManageOthers && !isOwnRecord;
+        const isModalReadOnly = !isCreate && !canManageOthers;
         return (
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="max-w-md" onClose={() => setIsModalOpen(false)}>
@@ -780,7 +779,7 @@ function AttendanceContent() {
             {isModalReadOnly && (
               <div className="flex items-center gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 text-[11px] font-medium">
                 <ShieldCheck className="size-3.5 shrink-0" />
-                <span>You are viewing another employee&apos;s record. Only HR Managers and Admins can edit.</span>
+                <span>You are viewing an attendance record. Only HR Managers and Admins can edit past records.</span>
               </div>
             )}
             <DialogDescription>

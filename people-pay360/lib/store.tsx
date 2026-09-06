@@ -204,7 +204,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    setIsLoading(true);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refreshData().finally(() => setIsLoading(false));
   }, []);
 
@@ -363,8 +363,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       employeeId: params.employeeId,
       date: today,
       checkInTime: nowTime,
-      scheduledTime: params.scheduledTime,
-      status: params.status,
       notes: params.notes,
     })
       .then(() => refreshData())
