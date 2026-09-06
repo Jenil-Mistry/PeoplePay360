@@ -47,6 +47,10 @@ export default function PayrunsPage() {
 
   const handleStartWizard = () => {
     setWizardStep(1);
+<<<<<<< HEAD
+=======
+
+>>>>>>> c96c6174222356e6e939a81b1fce3186a4b31ad3
     // Compute next available batch month dynamically so it never defaults to a colliding name
     const existingNames = new Set(payruns.map((p) => p.name.trim().toLowerCase()));
     const months = [
@@ -75,11 +79,15 @@ export default function PayrunsPage() {
     setScopeStart(nextAvailable.start);
     setScopeEnd(nextAvailable.end);
     setScopeStructureId(salaryStructures[0]?.id || "STR-1");
+<<<<<<< HEAD
     
     const eligibleIds = employees
       .filter((emp) => contracts.some((c) => c.employeeId === emp.id && c.status === "Running"))
       .map((e) => e.id);
     setSelectedEmpIds(eligibleIds);
+=======
+    setSelectedEmpIds(employees.map((e) => e.id));
+>>>>>>> c96c6174222356e6e939a81b1fce3186a4b31ad3
     setWizardOpen(true);
   };
 
