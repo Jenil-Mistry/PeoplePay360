@@ -42,22 +42,75 @@ export function evaluateSalaryFormula(formula: string, codeValues: Record<string
     expr = expr.replace(regex, String(codeValues[code] ?? 0));
   }
 
-  // Replace any leftover unknown identifiers with 0
-  expr = expr.replace(/[a-zA-Z_]\w*/g, "0");
+  // Detect unknown identifiers
+  const unknownCodes = expr.match(/[a-zA-Z_]\w*/g);
+  if (unknownCodes && unknownCodes.length > 0) {
+    throw new Error(`Unknown or circular rule code(s) referenced: ${unknownCodes.join(", ")}`);
+  }
 
-  // Validate that expr contains only safe mathematical characters: digits, ., +, -, *, /, (, ), spaces
+  // Validate that expr contains only safe mathematical characters
   if (!/^[\d\s+\-*/().]+$/.test(expr)) {
-    console.warn(`Unsafe characters in evaluated formula: "${expr}"`);
-    return 0;
+    throw new Error(`Unsafe characters in evaluated formula: "${expr}"`);
   }
 
   try {
-    // Safe evaluation using Function with no arguments
-    const result = new Function(`"use strict"; return (${expr});`)();
+    // Basic Shunting Yard tokenizer and RPN evaluator (safe substitute for new Function)
+    const tokens = expr.match(/\d+\.\d+|\d+|[+\-*/()]/g);
+    if (!tokens) return 0;
+
+    const output: (number | string)[] = [];
+    const operators: string[] = [];
+    const precedence: Record<string, number> = { '+': 1, '-': 1, '*': 2, '/': 2 };
+
+    // Unary minus is not fully supported in this simple parser, but is rarely used in standard payroll formulae
+    for (let i = 0; i < tokens.length; i++) {
+      const token = tokens[i];
+      if (!isNaN(Number(token))) {
+        output.push(Number(token));
+      } else if (token in precedence) {
+        while (
+          operators.length > 0 &&
+          operators[operators.length - 1] !== '(' &&
+          precedence[operators[operators.length - 1]] >= precedence[token]
+        ) {
+          output.push(operators.pop()!);
+        }
+        operators.push(token);
+      } else if (token === '(') {
+        operators.push(token);
+      } else if (token === ')') {
+        while (operators.length > 0 && operators[operators.length - 1] !== '(') {
+          output.push(operators.pop()!);
+        }
+        operators.pop(); // discard '('
+      }
+    }
+
+    while (operators.length > 0) {
+      output.push(operators.pop()!);
+    }
+
+    const stack: number[] = [];
+    for (const token of output) {
+      if (typeof token === 'number') {
+        stack.push(token);
+      } else {
+        const b = stack.pop() || 0;
+        const a = stack.pop() || 0;
+        switch (token) {
+          case '+': stack.push(a + b); break;
+          case '-': stack.push(a - b); break;
+          case '*': stack.push(a * b); break;
+          case '/': stack.push(b === 0 ? 0 : (a / b)); break;
+        }
+      }
+    }
+
+    const result = stack[0] || 0;
     return typeof result === "number" && !isNaN(result) ? Math.round(result * 100) / 100 : 0;
   } catch (err) {
     console.error(`Error evaluating formula "${formula}" -> "${expr}":`, err);
-    return 0;
+    throw new Error(`Failed to evaluate formula syntax: ${formula}`);
   }
 }
 
@@ -114,6 +167,8 @@ export function computeEmployeePayroll(params: {
 
   const lines: RuleCalculationResult[] = [];
 
+  const warnings: Array<{ warningType: string; message: string }> = [];
+
   for (const rule of sortedRules) {
     let ruleAmount = 0;
 
@@ -130,7 +185,15 @@ export function computeEmployeePayroll(params: {
       ruleAmount = Math.round(baseAmount * pct * 100) / 100;
     } else if (rule.computationType === "FORMULA") {
       if (rule.formula) {
-        ruleAmount = evaluateSalaryFormula(rule.formula, codeValues);
+        try {
+          ruleAmount = evaluateSalaryFormula(rule.formula, codeValues);
+        } catch (err: any) {
+          warnings.push({
+            warningType: "INVALID_FORMULA",
+            message: `Formula error in rule ${rule.code}: ${err.message}`,
+          });
+          ruleAmount = 0;
+        }
       } else {
         // Fallback default formula handling
         if (rule.code === "GROSS") {
@@ -174,7 +237,6 @@ export function computeEmployeePayroll(params: {
   const netSalary = categoryTotals["NET"] || (grossSalary - totalDeductions);
 
   // Pre-flight warning detection (Spec B6)
-  const warnings: Array<{ warningType: string; message: string }> = [];
 
   // Check 1: Missing bank details
   if (!employee.bankAccountNumber || employee.bankAccountNumber.trim() === "") {

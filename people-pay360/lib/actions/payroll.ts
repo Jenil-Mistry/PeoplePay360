@@ -12,6 +12,10 @@ import {
   contracts,
   departments,
   attendance,
+  workingSchedules,
+  workingScheduleLines,
+  timeOffRequests,
+  timeOffTypes,
 } from "@/lib/db/schema";
 import { eq, and, desc, sql, inArray, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -114,12 +118,17 @@ export async function createSalaryRule(data: {
 }) {
   try {
     await requireWriteAccess("payroll_structures_rules");
-    let resolvedStructId = 1;
-    if (data.structureId) {
-      resolvedStructId =
-        typeof data.structureId === "number"
-          ? data.structureId
-          : parseInt(data.structureId.replace(/\D/g, ""), 10) || 1;
+    if (!data.structureId) {
+      return { success: false, error: "structureId is required." };
+    }
+    
+    const resolvedStructId =
+      typeof data.structureId === "number"
+        ? data.structureId
+        : parseInt(data.structureId.replace(/\D/g, ""), 10);
+        
+    if (!resolvedStructId || isNaN(resolvedStructId)) {
+      return { success: false, error: "Invalid structureId provided." };
     }
 
     const catMap: Record<
@@ -304,9 +313,16 @@ export async function updateSalaryRule(
 export async function getEligibleEmployeesForPayrun(
   periodStart: string,
   periodEnd: string,
+  structureId?: number | string,
 ) {
   try {
     await requireReadAccess("payroll_create_compute");
+    
+    let resolvedStructId: number | undefined = undefined;
+    if (structureId) {
+      resolvedStructId = typeof structureId === "number" ? structureId : parseInt(structureId.replace(/\D/g, ""), 10);
+    }
+
     const eligible = await db
       .select({
         id: employees.id,
@@ -331,8 +347,10 @@ export async function getEligibleEmployeesForPayrun(
       .where(
         and(
           eq(contracts.status, "ACTIVE"),
+          sql`${employees.role} != 'ADMIN'`,
           sql`${contracts.startDate} <= ${periodEnd}`,
           sql`(${contracts.endDate} IS NULL OR ${contracts.endDate} >= ${periodStart})`,
+          resolvedStructId ? eq(contracts.salaryStructureId, resolvedStructId) : undefined
         ),
       );
 
@@ -362,12 +380,33 @@ export async function createPayrunBatch(data: {
     const endDate =
       data.periodEnd || data.endDate || new Date().toISOString().split("T")[0];
 
+    if (!data.structureId) {
+      return { success: false, error: "Salary structure is required to create a payrun." };
+    }
+    
+    if (new Date(startDate) > new Date(endDate)) {
+      return { success: false, error: "Period start date must be before or equal to period end date." };
+    }
+
     let resolvedStructId = 1;
     if (data.structureId) {
       resolvedStructId =
         typeof data.structureId === "number"
           ? data.structureId
           : parseInt(data.structureId.replace(/\D/g, ""), 10) || 1;
+    }
+
+    // Duplicate payrun prevention for same period and structure
+    const existingPayruns = await db.select({ id: payruns.id }).from(payruns).where(
+      and(
+        eq(payruns.structureId, resolvedStructId),
+        sql`${payruns.startDate} <= ${endDate}`,
+        sql`${payruns.endDate} >= ${startDate}`
+      )
+    );
+
+    if (existingPayruns.length > 0) {
+      return { success: false, error: "A payrun for this structure and overlapping period already exists." };
     }
 
     const rawEmpIds = data.selectedEmployeeIds || data.employeeIds || [];
@@ -385,6 +424,16 @@ export async function createPayrunBatch(data: {
         if (numId) resolvedEmpIds.push(numId);
       }
     }
+    
+    // Server-side revalidation of eligibility
+    const eligibleEmployees = await getEligibleEmployeesForPayrun(startDate, endDate, resolvedStructId);
+    const eligibleIds = eligibleEmployees.map(e => e.id);
+    const validTargetIds = resolvedEmpIds.filter(id => eligibleIds.includes(id));
+    const excludedIds = resolvedEmpIds.filter(id => !eligibleIds.includes(id));
+    
+    if (validTargetIds.length === 0) {
+      return { success: false, error: "No eligible employees selected. They might have a conflicting contract structure, be in an Admin role, or lack an active contract." };
+    }
 
     // Initialize Payrun in DRAFT (Spec B5)
     const [payrun] = await db
@@ -399,7 +448,10 @@ export async function createPayrunBatch(data: {
       .returning();
 
     // Automatically compute the batch payslips
-    await computePayrunBatch(payrun.id, resolvedEmpIds);
+    const computeRes = await computePayrunBatch(payrun.id, validTargetIds);
+    if (!computeRes.success) {
+      return { success: false, error: `Payrun created, but computation failed: ${computeRes.error}` };
+    }
 
     try {
       revalidatePath("/payroll/payruns");
@@ -472,126 +524,186 @@ export async function computePayrunBatch(
       empList = await db.select().from(employees).where(inArray(employees.id, eligible.map((e) => e.id)));
     }
 
-    // Clear any previous draft payslips for this payrun
-    const existingPayslips = await db
-      .select()
-      .from(payslips)
-      .where(eq(payslips.payrunId, rawRunId));
-    for (const ps of existingPayslips) {
-      await db.delete(payslipLines).where(eq(payslipLines.payslipId, ps.id));
-      await db
-        .delete(payslipWarnings)
-        .where(eq(payslipWarnings.payslipId, ps.id));
-    }
-    await db.delete(payslips).where(eq(payslips.payrunId, rawRunId));
-
-    // Compute payslip for each employee
-    for (const emp of empList) {
-      const contract = await getActiveContractForPeriod(
-        emp.id,
-        payrun.startDate,
-        payrun.endDate,
-      );
-      if (!contract) continue;
-
-      const contractRules = await db
+    // Wrap everything in a single transaction (Spec Phase 4.4)
+    await db.transaction(async (tx) => {
+      // Clear any previous draft payslips for this payrun
+      const existingPayslips = await tx
         .select()
-        .from(salaryRules)
-        .where(eq(salaryRules.structureId, contract.salaryStructureId))
-        .orderBy(salaryRules.sequence);
+        .from(payslips)
+        .where(eq(payslips.payrunId, rawRunId));
+      for (const ps of existingPayslips) {
+        await tx.delete(payslipLines).where(eq(payslipLines.payslipId, ps.id));
+        await tx
+          .delete(payslipWarnings)
+          .where(eq(payslipWarnings.payslipId, ps.id));
+      }
+      await tx.delete(payslips).where(eq(payslips.payrunId, rawRunId));
 
-      const rulesToUse = contractRules.length > 0 ? contractRules : rules;
-
-      // Calculate actual worked days from attendance records for the payrun period
-      const attRecords = await db
-        .select({ status: attendance.status })
-        .from(attendance)
-        .where(
-          and(
-            eq(attendance.employeeId, emp.id),
-            gte(attendance.date, payrun.startDate),
-            lte(attendance.date, payrun.endDate),
-            sql`${attendance.status} IN ('PRESENT', 'LATE', 'HALF_DAY')`
-          )
+      // Compute payslip for each employee
+      for (const emp of empList) {
+        const contract = await getActiveContractForPeriod(
+          emp.id,
+          payrun.startDate,
+          payrun.endDate,
         );
-      // Count HALF_DAY as 0.5, PRESENT/LATE as 1
-      let workedDays = 0;
-      for (const rec of attRecords) {
-        workedDays += rec.status === "HALF_DAY" ? 0.5 : 1;
-      }
-      // If no attendance records exist yet, fall back to calendar-based estimate
-      if (workedDays === 0) {
-        const start = new Date(payrun.startDate);
-        const end = new Date(payrun.endDate);
-        let weekdays = 0;
-        const d = new Date(start);
-        while (d <= end) {
-          const day = d.getDay();
-          if (day !== 0 && day !== 6) weekdays++;
-          d.setDate(d.getDate() + 1);
+        if (!contract) continue;
+
+        const contractRules = await tx
+          .select()
+          .from(salaryRules)
+          .where(eq(salaryRules.structureId, contract.salaryStructureId))
+          .orderBy(salaryRules.sequence);
+
+        const rulesToUse = contractRules.length > 0 ? contractRules : rules;
+
+        // Schedule-aware expected workdays
+        let expectedWorkdays = 0;
+        if (contract.workingScheduleId) {
+          const [schedule] = await tx
+            .select()
+            .from(workingSchedules)
+            .where(eq(workingSchedules.id, contract.workingScheduleId));
+            
+          if (schedule) {
+            const scheduleLines = await tx
+              .select()
+              .from(workingScheduleLines)
+              .where(eq(workingScheduleLines.scheduleId, schedule.id));
+            const dayMap = { 0: "SUN", 1: "MON", 2: "TUE", 3: "WED", 4: "THU", 5: "FRI", 6: "SAT" };
+            const workingDays = new Set(scheduleLines.map(l => l.dayOfWeek));
+            
+            const start = new Date(payrun.startDate);
+            const end = new Date(payrun.endDate);
+            const d = new Date(start);
+            while (d <= end) {
+              if (workingDays.has(dayMap[d.getDay() as keyof typeof dayMap] as any)) {
+                expectedWorkdays++;
+              }
+              d.setDate(d.getDate() + 1);
+            }
+          }
         }
-        workedDays = weekdays;
-      }
+        
+        // Fallback to M-F if no schedule or expectedWorkdays is still 0
+        if (expectedWorkdays === 0) {
+          const start = new Date(payrun.startDate);
+          const end = new Date(payrun.endDate);
+          const d = new Date(start);
+          while (d <= end) {
+            const day = d.getDay();
+            if (day !== 0 && day !== 6) expectedWorkdays++;
+            d.setDate(d.getDate() + 1);
+          }
+        }
 
-      const computation = computeEmployeePayroll({
-        employee: {
-          id: emp.id,
-          name: emp.name,
-          bankAccountNumber: emp.bankAccountNumber,
-          bankName: emp.bankName,
-        },
-        contract: {
-          id: contract.id,
-          wage: contract.wage,
-          startDate: contract.startDate,
-          endDate: contract.endDate,
-        },
-        rules: rulesToUse,
-        periodStart: payrun.startDate,
-        periodEnd: payrun.endDate,
-        workedDays,
-      });
+        // Calculate actual worked days from attendance records for the payrun period
+        const attRecords = await tx
+          .select({ status: attendance.status })
+          .from(attendance)
+          .where(
+            and(
+              eq(attendance.employeeId, emp.id),
+              gte(attendance.date, payrun.startDate),
+              lte(attendance.date, payrun.endDate),
+              sql`${attendance.status} IN ('PRESENT', 'LATE', 'HALF_DAY')`
+            )
+          );
+        // Count HALF_DAY as 0.5, PRESENT/LATE as 1
+        let workedDays = 0;
+        for (const rec of attRecords) {
+          workedDays += rec.status === "HALF_DAY" ? 0.5 : 1;
+        }
+        
+        // Fetch approved leave days
+        const timeOffs = await tx
+          .select({ durationUnits: timeOffRequests.requestedUnits, includeInPayroll: timeOffTypes.includeInPayroll })
+          .from(timeOffRequests)
+          .innerJoin(timeOffTypes, eq(timeOffRequests.timeOffTypeId, timeOffTypes.id))
+          .where(
+            and(
+              eq(timeOffRequests.employeeId, emp.id),
+              eq(timeOffRequests.status, "APPROVED"),
+              gte(timeOffRequests.startDate, payrun.startDate),
+              lte(timeOffRequests.endDate, payrun.endDate)
+            )
+          );
+          
+        let paidLeaveDays = 0;
+        for (const to of timeOffs) {
+          if (to.includeInPayroll) {
+            paidLeaveDays += Number(to.durationUnits);
+          }
+        }
+        
+        workedDays += paidLeaveDays;
 
-      const [newPayslip] = await db
-        .insert(payslips)
-        .values({
-          payrunId: rawRunId,
-          employeeId: emp.id,
-          contractId: contract.id,
-          structureId: contract.salaryStructureId,
-          workedDays: workedDays.toFixed(2),
-          basicWage: computation.basicWage.toFixed(2),
-          grossSalary: computation.grossSalary.toFixed(2),
-          netSalary: computation.netSalary.toFixed(2),
-          hasWarnings: computation.warnings.length > 0,
-          status: "COMPUTED",
-        })
-        .returning();
-
-      for (const line of computation.lines) {
-        await db.insert(payslipLines).values({
-          payslipId: newPayslip.id,
-          sequence: line.sequence,
-          ruleCode: line.ruleCode,
-          ruleName: line.ruleName,
-          category: line.category,
-          amount: line.amount.toFixed(2),
+        const computation = computeEmployeePayroll({
+          employee: {
+            id: emp.id,
+            name: emp.name,
+            bankAccountNumber: emp.bankAccountNumber,
+            bankName: emp.bankName,
+          },
+          contract: {
+            id: contract.id,
+            wage: contract.wage,
+            startDate: contract.startDate,
+            endDate: contract.endDate,
+          },
+          rules: rulesToUse,
+          periodStart: payrun.startDate,
+          periodEnd: payrun.endDate,
+          workedDays,
         });
+        
+        if (workedDays < expectedWorkdays) {
+          computation.warnings.push({
+            warningType: "PRORATION",
+            message: `Employee worked fewer days (${workedDays}) than expected (${expectedWorkdays}). Proration may apply.`
+          });
+        }
+
+        const [newPayslip] = await tx
+          .insert(payslips)
+          .values({
+            payrunId: rawRunId,
+            employeeId: emp.id,
+            contractId: contract.id,
+            structureId: contract.salaryStructureId,
+            workedDays: workedDays.toFixed(2),
+            basicWage: computation.basicWage.toFixed(2),
+            grossSalary: computation.grossSalary.toFixed(2),
+            netSalary: computation.netSalary.toFixed(2),
+            hasWarnings: computation.warnings.length > 0,
+            status: "COMPUTED",
+          })
+          .returning();
+
+        for (const line of computation.lines) {
+          await tx.insert(payslipLines).values({
+            payslipId: newPayslip.id,
+            sequence: line.sequence,
+            ruleCode: line.ruleCode,
+            ruleName: line.ruleName,
+            category: line.category,
+            amount: line.amount.toFixed(2),
+          });
+        }
+
+        for (const w of computation.warnings) {
+          await tx.insert(payslipWarnings).values({
+            payslipId: newPayslip.id,
+            warningType: w.warningType,
+            message: w.message,
+          });
+        }
       }
 
-      for (const w of computation.warnings) {
-        await db.insert(payslipWarnings).values({
-          payslipId: newPayslip.id,
-          warningType: w.warningType,
-          message: w.message,
-        });
-      }
-    }
-
-    await db
-      .update(payruns)
-      .set({ status: "COMPUTED", computedAt: new Date() })
-      .where(eq(payruns.id, rawRunId));
+      await tx
+        .update(payruns)
+        .set({ status: "COMPUTED", computedAt: new Date() })
+        .where(eq(payruns.id, rawRunId));
+    });
 
     try {
       revalidatePath(`/payroll/payruns/${rawRunId}`);
@@ -612,22 +724,24 @@ export async function validatePayrun(payrunId: number | string) {
 
     const rawId = typeof payrunId === "string" ? parseInt(payrunId.replace(/\D/g, ""), 10) : payrunId;
 
-    // Enforce lifecycle: only COMPUTED payrun can be validated
-    const [payrun] = await db.select({ status: payruns.status }).from(payruns).where(eq(payruns.id, rawId));
-    if (!payrun) return { success: false, error: "Payrun not found." };
-    if (payrun.status !== "COMPUTED") {
-      return { success: false, error: `Cannot validate: payrun is in '${payrun.status}' status. Must be COMPUTED first.` };
-    }
+    await db.transaction(async (tx) => {
+      // Enforce lifecycle: only COMPUTED payrun can be validated
+      const [payrun] = await tx.select({ status: payruns.status }).from(payruns).where(eq(payruns.id, rawId));
+      if (!payrun) throw new Error("Payrun not found.");
+      if (payrun.status !== "COMPUTED") {
+        throw new Error(`Cannot validate: payrun is in '${payrun.status}' status. Must be COMPUTED first.`);
+      }
 
-    await db
-      .update(payruns)
-      .set({ status: "VALIDATED", validatedAt: new Date() })
-      .where(eq(payruns.id, rawId));
+      await tx
+        .update(payruns)
+        .set({ status: "VALIDATED", validatedAt: new Date() })
+        .where(eq(payruns.id, rawId));
 
-    await db
-      .update(payslips)
-      .set({ status: "VALIDATED" })
-      .where(eq(payslips.payrunId, rawId));
+      await tx
+        .update(payslips)
+        .set({ status: "VALIDATED" })
+        .where(eq(payslips.payrunId, rawId));
+    });
 
     try {
       revalidatePath(`/payroll/payruns/${rawId}`);
@@ -648,24 +762,26 @@ export async function markPayrunPaid(payrunId: number | string) {
 
     const rawId = typeof payrunId === "string" ? parseInt(payrunId.replace(/\D/g, ""), 10) : payrunId;
 
-    // Enforce lifecycle: only VALIDATED payrun can be paid
-    const [payrun] = await db.select({ status: payruns.status }).from(payruns).where(eq(payruns.id, rawId));
-    if (!payrun) return { success: false, error: "Payrun not found." };
-    if (payrun.status !== "VALIDATED") {
-      return { success: false, error: `Cannot mark as paid: payrun is in '${payrun.status}' status. Must be VALIDATED first.` };
-    }
+    await db.transaction(async (tx) => {
+      // Enforce lifecycle: only VALIDATED payrun can be paid
+      const [payrun] = await tx.select({ status: payruns.status }).from(payruns).where(eq(payruns.id, rawId));
+      if (!payrun) throw new Error("Payrun not found.");
+      if (payrun.status !== "VALIDATED") {
+        throw new Error(`Cannot mark as paid: payrun is in '${payrun.status}' status. Must be VALIDATED first.`);
+      }
 
-    const paidAt = new Date();
+      const paidAt = new Date();
 
-    await db
-      .update(payruns)
-      .set({ status: "PAID", paidAt })
-      .where(eq(payruns.id, rawId));
+      await tx
+        .update(payruns)
+        .set({ status: "PAID", paidAt })
+        .where(eq(payruns.id, rawId));
 
-    await db
-      .update(payslips)
-      .set({ status: "PAID" })
-      .where(eq(payslips.payrunId, rawId));
+      await tx
+        .update(payslips)
+        .set({ status: "PAID" })
+        .where(eq(payslips.payrunId, rawId));
+    });
 
     try {
       revalidatePath(`/payroll/payruns/${rawId}`);
