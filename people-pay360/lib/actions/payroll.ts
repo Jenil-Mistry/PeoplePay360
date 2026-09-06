@@ -721,19 +721,12 @@ export async function computePayrunBatch(
         revalidatePath("/dashboard");
       } catch {}
 
-<<<<<<< HEAD
-      return { success: true };
-    } catch (error: any) {
-      console.error(`Failed to compute payrun ${payrunId}:`, error);
-      return { success: false, error: error.message || "Computation failed" };
-    }
-=======
     return { success: true };
   } catch (error: any) {
     logger.error("payroll", `Failed to compute payrun ${payrunId}:`, error);
     return { success: false, error: error.message || "Computation failed" };
->>>>>>> c0427643d276878b205b3f7a05963161b04b7442
   }
+}
 
   export async function validatePayrun(payrunId: number | string) {
     try {
@@ -770,19 +763,12 @@ export async function computePayrunBatch(
         revalidatePath("/dashboard");
       } catch {}
 
-<<<<<<< HEAD
-      return { success: true };
-    } catch (error: any) {
-      console.error(`Failed to validate payrun ${payrunId}:`, error);
-      return { success: false, error: error.message || "Validation failed" };
-    }
-=======
     return { success: true };
   } catch (error: any) {
     logger.error("payroll", `Failed to validate payrun ${payrunId}:`, error);
     return { success: false, error: error.message || "Validation failed" };
->>>>>>> c0427643d276878b205b3f7a05963161b04b7442
   }
+}
 
   export async function markPayrunPaid(payrunId: number | string) {
     try {

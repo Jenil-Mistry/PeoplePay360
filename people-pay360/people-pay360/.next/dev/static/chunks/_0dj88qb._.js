@@ -906,14 +906,14 @@ function AppShell({ children }) {
                                         payrollOpen && sidebarOpen && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
                                             className: "pl-9 pr-2 py-1 space-y-1",
                                             children: [
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
+                                                !isEmployee && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
                                                     href: "/payroll/payruns",
                                                     className: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["cn"])("block px-2.5 py-1.5 rounded-md text-xs transition-colors", pathname.startsWith("/payroll/payruns") ? "bg-primary/10 text-primary font-semibold" : "text-muted-foreground hover:text-foreground hover:bg-muted/60"),
                                                     children: "Payruns"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/layout/app-shell.tsx",
-                                                    lineNumber: 447,
-                                                    columnNumber: 21
+                                                    lineNumber: 448,
+                                                    columnNumber: 23
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
                                                     href: "/payroll/payslips",
@@ -921,7 +921,7 @@ function AppShell({ children }) {
                                                     children: "Payslips"
                                                 }, void 0, false, {
                                                     fileName: "[project]/components/layout/app-shell.tsx",
-                                                    lineNumber: 458,
+                                                    lineNumber: 460,
                                                     columnNumber: 21
                                                 }, this),
                                                 canAccessFullPayroll && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Fragment"], {
@@ -932,7 +932,7 @@ function AppShell({ children }) {
                                                             children: "Salary Structures"
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                                            lineNumber: 471,
+                                                            lineNumber: 473,
                                                             columnNumber: 25
                                                         }, this),
                                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -941,13 +941,13 @@ function AppShell({ children }) {
                                                             children: "Salary Rules"
                                                         }, void 0, false, {
                                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                                            lineNumber: 482,
+                                                            lineNumber: 484,
                                                             columnNumber: 25
                                                         }, this)
                                                     ]
                                                 }, void 0, true, {
                                                     fileName: "[project]/components/layout/app-shell.tsx",
-                                                    lineNumber: 470,
+                                                    lineNumber: 472,
                                                     columnNumber: 23
                                                 }, this)
                                             ]
@@ -971,20 +971,20 @@ function AppShell({ children }) {
                                             className: "size-4 shrink-0"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 512,
+                                            lineNumber: 514,
                                             columnNumber: 17
                                         }, this),
                                         sidebarOpen && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                             children: "Reports"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 513,
+                                            lineNumber: 515,
                                             columnNumber: 33
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/layout/app-shell.tsx",
-                                    lineNumber: 502,
+                                    lineNumber: 504,
                                     columnNumber: 15
                                 }, this)
                             ]
@@ -1011,7 +1011,7 @@ function AppShell({ children }) {
                                             children: "Navigation"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 525,
+                                            lineNumber: 527,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("button", {
@@ -1020,18 +1020,18 @@ function AppShell({ children }) {
                                                 className: "size-5"
                                             }, void 0, false, {
                                                 fileName: "[project]/components/layout/app-shell.tsx",
-                                                lineNumber: 527,
+                                                lineNumber: 529,
                                                 columnNumber: 19
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 526,
+                                            lineNumber: 528,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/layout/app-shell.tsx",
-                                    lineNumber: 524,
+                                    lineNumber: 526,
                                     columnNumber: 15
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -1044,7 +1044,7 @@ function AppShell({ children }) {
                                             children: "Dashboard"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 531,
+                                            lineNumber: 533,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -1054,7 +1054,7 @@ function AppShell({ children }) {
                                             children: "Employees"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 532,
+                                            lineNumber: 534,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -1064,7 +1064,7 @@ function AppShell({ children }) {
                                             children: "Contracts"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 533,
+                                            lineNumber: 535,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -1074,7 +1074,7 @@ function AppShell({ children }) {
                                             children: "Attendance"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 534,
+                                            lineNumber: 536,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -1084,7 +1084,7 @@ function AppShell({ children }) {
                                             children: "Time Off Requests"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 535,
+                                            lineNumber: 537,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -1094,7 +1094,7 @@ function AppShell({ children }) {
                                             children: "Time Off Allocations"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 536,
+                                            lineNumber: 538,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -1104,7 +1104,7 @@ function AppShell({ children }) {
                                             children: "Payruns"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 537,
+                                            lineNumber: 539,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -1114,7 +1114,7 @@ function AppShell({ children }) {
                                             children: "Payslips"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 538,
+                                            lineNumber: 540,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -1124,7 +1124,7 @@ function AppShell({ children }) {
                                             children: "Salary Structures"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 539,
+                                            lineNumber: 541,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -1134,7 +1134,7 @@ function AppShell({ children }) {
                                             children: "Salary Rules"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 540,
+                                            lineNumber: 542,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$client$2f$app$2d$dir$2f$link$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["default"], {
@@ -1144,24 +1144,24 @@ function AppShell({ children }) {
                                             children: "Reports"
                                         }, void 0, false, {
                                             fileName: "[project]/components/layout/app-shell.tsx",
-                                            lineNumber: 541,
+                                            lineNumber: 543,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/components/layout/app-shell.tsx",
-                                    lineNumber: 530,
+                                    lineNumber: 532,
                                     columnNumber: 15
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/components/layout/app-shell.tsx",
-                            lineNumber: 523,
+                            lineNumber: 525,
                             columnNumber: 13
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/layout/app-shell.tsx",
-                        lineNumber: 522,
+                        lineNumber: 524,
                         columnNumber: 11
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("main", {
@@ -1171,12 +1171,12 @@ function AppShell({ children }) {
                             children: children
                         }, void 0, false, {
                             fileName: "[project]/components/layout/app-shell.tsx",
-                            lineNumber: 549,
+                            lineNumber: 551,
                             columnNumber: 11
                         }, this)
                     }, void 0, false, {
                         fileName: "[project]/components/layout/app-shell.tsx",
-                        lineNumber: 548,
+                        lineNumber: 550,
                         columnNumber: 9
                     }, this)
                 ]
@@ -1190,7 +1190,7 @@ function AppShell({ children }) {
                 onOpenChange: setSearchOpen
             }, void 0, false, {
                 fileName: "[project]/components/layout/app-shell.tsx",
-                lineNumber: 554,
+                lineNumber: 556,
                 columnNumber: 7
             }, this)
         ]
@@ -2207,6 +2207,54 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
 }
 }),
+"[project]/lib/actions/data:0fcde5 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "createEmployee",
+    ()=>$$RSC_SERVER_ACTION_3
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
+/* __next_internal_action_entry_do_not_use__ [{"40f8c337974ea3b9045930a67aee6b294b86b70710":{"name":"createEmployee"}},"lib/actions/employees.ts",""] */ "use turbopack no side effects";
+;
+const $$RSC_SERVER_ACTION_3 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("40f8c337974ea3b9045930a67aee6b294b86b70710", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "createEmployee");
+;
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/lib/actions/data:1b7049 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "getInitialAppState",
+    ()=>$$RSC_SERVER_ACTION_0
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
+/* __next_internal_action_entry_do_not_use__ [{"008bb8431fe27ee2321216fcc8e8ff0c26d7fec8d4":{"name":"getInitialAppState"}},"lib/actions/sync.ts",""] */ "use turbopack no side effects";
+;
+const $$RSC_SERVER_ACTION_0 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("008bb8431fe27ee2321216fcc8e8ff0c26d7fec8d4", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "getInitialAppState");
+;
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/lib/actions/data:242a64 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "createTimeOffRequest",
+    ()=>$$RSC_SERVER_ACTION_7
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
+/* __next_internal_action_entry_do_not_use__ [{"40990c88f8414ad2be24b03ab53cf998549e0fc0eb":{"name":"createTimeOffRequest"}},"lib/actions/time-off.ts",""] */ "use turbopack no side effects";
+;
+const $$RSC_SERVER_ACTION_7 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("40990c88f8414ad2be24b03ab53cf998549e0fc0eb", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "createTimeOffRequest");
+;
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
 "[project]/lib/actions/data:2faf83 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
 "use strict";
 
@@ -2218,6 +2266,38 @@ var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist
 /* __next_internal_action_entry_do_not_use__ [{"40c77cc4320224066fde70cc3b91a6dd25a6fce5ca":{"name":"createSalaryStructure"}},"lib/actions/payroll.ts",""] */ "use turbopack no side effects";
 ;
 const $$RSC_SERVER_ACTION_1 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("40c77cc4320224066fde70cc3b91a6dd25a6fce5ca", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "createSalaryStructure");
+;
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/lib/actions/data:301ced [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "updateContract",
+    ()=>$$RSC_SERVER_ACTION_3
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
+/* __next_internal_action_entry_do_not_use__ [{"60b55a8ed011ab870019d98b171647617fae820432":{"name":"updateContract"}},"lib/actions/contracts.ts",""] */ "use turbopack no side effects";
+;
+const $$RSC_SERVER_ACTION_3 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("60b55a8ed011ab870019d98b171647617fae820432", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "updateContract");
+;
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/lib/actions/data:309aa7 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "updateEmployee",
+    ()=>$$RSC_SERVER_ACTION_4
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
+/* __next_internal_action_entry_do_not_use__ [{"607b138c3b0a861cf88825e61385e29c3b971ce553":{"name":"updateEmployee"}},"lib/actions/employees.ts",""] */ "use turbopack no side effects";
+;
+const $$RSC_SERVER_ACTION_4 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("607b138c3b0a861cf88825e61385e29c3b971ce553", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "updateEmployee");
 ;
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
@@ -2271,17 +2351,17 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
 }
 }),
-"[project]/lib/actions/data:62d5bb [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
+"[project]/lib/actions/data:4eeac8 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
 "use strict";
 
 __turbopack_context__.s([
-    "createTimeOffRequest",
-    ()=>$$RSC_SERVER_ACTION_7
+    "refuseTimeOffRequest",
+    ()=>$$RSC_SERVER_ACTION_9
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
-/* __next_internal_action_entry_do_not_use__ [{"40990c88f8414ad2be24b03ab53cf998549e0fc0eb":{"name":"createTimeOffRequest"}},"lib/actions/time-off.ts",""] */ "use turbopack no side effects";
+/* __next_internal_action_entry_do_not_use__ [{"4039e9dbb0674ea72884ef34743e81b0dc6e3a3e17":{"name":"refuseTimeOffRequest"}},"lib/actions/time-off.ts",""] */ "use turbopack no side effects";
 ;
-const $$RSC_SERVER_ACTION_7 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("40990c88f8414ad2be24b03ab53cf998549e0fc0eb", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "createTimeOffRequest");
+const $$RSC_SERVER_ACTION_9 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("4039e9dbb0674ea72884ef34743e81b0dc6e3a3e17", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "refuseTimeOffRequest");
 ;
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
@@ -2319,70 +2399,6 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
 }
 }),
-"[project]/lib/actions/data:6f62ef [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
-"use strict";
-
-__turbopack_context__.s([
-    "createTimeOffAllocation",
-    ()=>$$RSC_SERVER_ACTION_5
-]);
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
-/* __next_internal_action_entry_do_not_use__ [{"40a9c76362c5350ee523b838bde3dc95d170a1bca4":{"name":"createTimeOffAllocation"}},"lib/actions/time-off.ts",""] */ "use turbopack no side effects";
-;
-const $$RSC_SERVER_ACTION_5 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("40a9c76362c5350ee523b838bde3dc95d170a1bca4", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "createTimeOffAllocation");
-;
-if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
-    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
-}
-}),
-"[project]/lib/actions/data:72e1b5 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
-"use strict";
-
-__turbopack_context__.s([
-    "createEmployee",
-    ()=>$$RSC_SERVER_ACTION_3
-]);
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
-/* __next_internal_action_entry_do_not_use__ [{"40f8c337974ea3b9045930a67aee6b294b86b70710":{"name":"createEmployee"}},"lib/actions/employees.ts",""] */ "use turbopack no side effects";
-;
-const $$RSC_SERVER_ACTION_3 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("40f8c337974ea3b9045930a67aee6b294b86b70710", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "createEmployee");
-;
-if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
-    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
-}
-}),
-"[project]/lib/actions/data:7b91c1 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
-"use strict";
-
-__turbopack_context__.s([
-    "refuseTimeOffRequest",
-    ()=>$$RSC_SERVER_ACTION_9
-]);
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
-/* __next_internal_action_entry_do_not_use__ [{"4039e9dbb0674ea72884ef34743e81b0dc6e3a3e17":{"name":"refuseTimeOffRequest"}},"lib/actions/time-off.ts",""] */ "use turbopack no side effects";
-;
-const $$RSC_SERVER_ACTION_9 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("4039e9dbb0674ea72884ef34743e81b0dc6e3a3e17", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "refuseTimeOffRequest");
-;
-if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
-    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
-}
-}),
-"[project]/lib/actions/data:849408 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
-"use strict";
-
-__turbopack_context__.s([
-    "approveTimeOffRequest",
-    ()=>$$RSC_SERVER_ACTION_8
-]);
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
-/* __next_internal_action_entry_do_not_use__ [{"4078471572b223fa8c67cfec0acd192f4efc216eb9":{"name":"approveTimeOffRequest"}},"lib/actions/time-off.ts",""] */ "use turbopack no side effects";
-;
-const $$RSC_SERVER_ACTION_8 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("4078471572b223fa8c67cfec0acd192f4efc216eb9", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "approveTimeOffRequest");
-;
-if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
-    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
-}
-}),
 "[project]/lib/actions/data:9de6d5 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
 "use strict";
 
@@ -2415,39 +2431,7 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
 }
 }),
-"[project]/lib/actions/data:c7c068 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
-"use strict";
-
-__turbopack_context__.s([
-    "updateContract",
-    ()=>$$RSC_SERVER_ACTION_3
-]);
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
-/* __next_internal_action_entry_do_not_use__ [{"60b55a8ed011ab870019d98b171647617fae820432":{"name":"updateContract"}},"lib/actions/contracts.ts",""] */ "use turbopack no side effects";
-;
-const $$RSC_SERVER_ACTION_3 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("60b55a8ed011ab870019d98b171647617fae820432", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "updateContract");
-;
-if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
-    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
-}
-}),
-"[project]/lib/actions/data:c8c765 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
-"use strict";
-
-__turbopack_context__.s([
-    "getInitialAppState",
-    ()=>$$RSC_SERVER_ACTION_0
-]);
-var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
-/* __next_internal_action_entry_do_not_use__ [{"008bb8431fe27ee2321216fcc8e8ff0c26d7fec8d4":{"name":"getInitialAppState"}},"lib/actions/sync.ts",""] */ "use turbopack no side effects";
-;
-const $$RSC_SERVER_ACTION_0 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("008bb8431fe27ee2321216fcc8e8ff0c26d7fec8d4", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "getInitialAppState");
-;
-if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
-    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
-}
-}),
-"[project]/lib/actions/data:de3efe [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
+"[project]/lib/actions/data:a81eca [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
 "use strict";
 
 __turbopack_context__.s([
@@ -2463,7 +2447,23 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
 }
 }),
-"[project]/lib/actions/data:dece07 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
+"[project]/lib/actions/data:c1dc77 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
+"use strict";
+
+__turbopack_context__.s([
+    "approveTimeOffRequest",
+    ()=>$$RSC_SERVER_ACTION_8
+]);
+var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
+/* __next_internal_action_entry_do_not_use__ [{"4078471572b223fa8c67cfec0acd192f4efc216eb9":{"name":"approveTimeOffRequest"}},"lib/actions/time-off.ts",""] */ "use turbopack no side effects";
+;
+const $$RSC_SERVER_ACTION_8 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("4078471572b223fa8c67cfec0acd192f4efc216eb9", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "approveTimeOffRequest");
+;
+if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
+    __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
+}
+}),
+"[project]/lib/actions/data:c5fd65 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
 "use strict";
 
 __turbopack_context__.s([
@@ -2495,17 +2495,17 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
 }
 }),
-"[project]/lib/actions/data:e80f84 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
+"[project]/lib/actions/data:ed0c74 [app-client] (ecmascript) <text/javascript>", ((__turbopack_context__) => {
 "use strict";
 
 __turbopack_context__.s([
-    "updateEmployee",
-    ()=>$$RSC_SERVER_ACTION_4
+    "createTimeOffAllocation",
+    ()=>$$RSC_SERVER_ACTION_5
 ]);
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/build/webpack/loaders/next-flight-loader/action-client-wrapper.js [app-client] (ecmascript)");
-/* __next_internal_action_entry_do_not_use__ [{"607b138c3b0a861cf88825e61385e29c3b971ce553":{"name":"updateEmployee"}},"lib/actions/employees.ts",""] */ "use turbopack no side effects";
+/* __next_internal_action_entry_do_not_use__ [{"40a9c76362c5350ee523b838bde3dc95d170a1bca4":{"name":"createTimeOffAllocation"}},"lib/actions/time-off.ts",""] */ "use turbopack no side effects";
 ;
-const $$RSC_SERVER_ACTION_4 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("607b138c3b0a861cf88825e61385e29c3b971ce553", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "updateEmployee");
+const $$RSC_SERVER_ACTION_5 = /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["createServerReference"])("40a9c76362c5350ee523b838bde3dc95d170a1bca4", __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["callServer"], void 0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$build$2f$webpack$2f$loaders$2f$next$2d$flight$2d$loader$2f$action$2d$client$2d$wrapper$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["findSourceMapURL"], "createTimeOffAllocation");
 ;
 if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelpers !== null) {
     __turbopack_context__.k.registerExports(__turbopack_context__.m, globalThis.$RefreshHelpers$);
@@ -2635,7 +2635,7 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
     // ── Payroll ──────────────────────────
     payroll_view: {
         EMPLOYEE: "NONE",
-        HR_MANAGER: "NONE",
+        HR_MANAGER: "READ",
         PAYROLL_USER: "READ",
         PAYROLL_MANAGER: "READ",
         ADMIN: "READ"
@@ -2646,6 +2646,13 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
         PAYROLL_USER: "READ",
         PAYROLL_MANAGER: "READ",
         ADMIN: "READ"
+    },
+    payroll_send_payslips: {
+        EMPLOYEE: "NONE",
+        HR_MANAGER: "WRITE",
+        PAYROLL_USER: "NONE",
+        PAYROLL_MANAGER: "NONE",
+        ADMIN: "WRITE"
     },
     payroll_create_compute: {
         EMPLOYEE: "NONE",
@@ -2708,7 +2715,8 @@ function getVisibleSidebarModules(role) {
         timeOff: true,
         timeOffAllocations: canAccessModule(role, "time_off_allocations"),
         timeOffTypes: canAccessModule(role, "time_off_types"),
-        payroll: canAccessModule(role, "payroll_view"),
+        payroll: canAccessModule(role, "payroll_view") || canAccessModule(role, "payroll_own_payslip"),
+        payrollSendPayslips: canAccessModule(role, "payroll_send_payslips"),
         payrollStructures: canAccessModule(role, "payroll_structures_rules"),
         reports: canAccessModule(role, "reports")
     };
@@ -2756,20 +2764,20 @@ __turbopack_context__.s([
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/jsx-dev-runtime.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next/dist/compiled/react/index.js [app-client] (ecmascript)");
 var __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2d$auth$2f$react$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__ = __turbopack_context__.i("[project]/node_modules/next-auth/react.js [app-client] (ecmascript)");
-var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$c8c765__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:c8c765 [app-client] (ecmascript) <text/javascript>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$72e1b5__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:72e1b5 [app-client] (ecmascript) <text/javascript>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$e80f84__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:e80f84 [app-client] (ecmascript) <text/javascript>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$dece07__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:dece07 [app-client] (ecmascript) <text/javascript>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$de3efe__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:de3efe [app-client] (ecmascript) <text/javascript>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$c7c068__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:c7c068 [app-client] (ecmascript) <text/javascript>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$1b7049__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:1b7049 [app-client] (ecmascript) <text/javascript>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$0fcde5__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:0fcde5 [app-client] (ecmascript) <text/javascript>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$309aa7__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:309aa7 [app-client] (ecmascript) <text/javascript>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$c5fd65__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:c5fd65 [app-client] (ecmascript) <text/javascript>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$a81eca__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:a81eca [app-client] (ecmascript) <text/javascript>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$301ced__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:301ced [app-client] (ecmascript) <text/javascript>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$e22723__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:e22723 [app-client] (ecmascript) <text/javascript>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$007ded__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:007ded [app-client] (ecmascript) <text/javascript>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$9de6d5__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:9de6d5 [app-client] (ecmascript) <text/javascript>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$055ad1__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:055ad1 [app-client] (ecmascript) <text/javascript>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$62d5bb__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:62d5bb [app-client] (ecmascript) <text/javascript>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$849408__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:849408 [app-client] (ecmascript) <text/javascript>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$7b91c1__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:7b91c1 [app-client] (ecmascript) <text/javascript>");
-var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$6f62ef__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:6f62ef [app-client] (ecmascript) <text/javascript>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$242a64__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:242a64 [app-client] (ecmascript) <text/javascript>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$c1dc77__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:c1dc77 [app-client] (ecmascript) <text/javascript>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$4eeac8__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:4eeac8 [app-client] (ecmascript) <text/javascript>");
+var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$ed0c74__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:ed0c74 [app-client] (ecmascript) <text/javascript>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$6c6e1d__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:6c6e1d [app-client] (ecmascript) <text/javascript>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$a5dd7e__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:a5dd7e [app-client] (ecmascript) <text/javascript>");
 var __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$31b04b__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__ = __turbopack_context__.i("[project]/lib/actions/data:31b04b [app-client] (ecmascript) <text/javascript>");
@@ -2836,7 +2844,7 @@ function AppProvider({ children }) {
     // Sync state directly from Neon PostgreSQL
     const refreshData = async ()=>{
         try {
-            const live = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$c8c765__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["getInitialAppState"])();
+            const live = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$1b7049__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["getInitialAppState"])();
             if (live.employees) setEmployees(live.employees);
             if (live.contracts) setContracts(live.contracts);
             if (live.schedules) setSchedules(live.schedules);
@@ -2871,7 +2879,7 @@ function AppProvider({ children }) {
                 optimisticEmp,
                 ...prev
             ]);
-        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$72e1b5__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["createEmployee"])({
+        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$0fcde5__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["createEmployee"])({
             name: data.name,
             workEmail: data.workEmail,
             jobPosition: data.jobPosition,
@@ -2891,14 +2899,14 @@ function AppProvider({ children }) {
                     ...e,
                     ...update
                 } : e));
-        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$e80f84__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["updateEmployee"])(id, update).then(()=>refreshData()).catch((err)=>console.error("Neon DB employee update failed:", err));
+        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$309aa7__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["updateEmployee"])(id, update).then(()=>refreshData()).catch((err)=>console.error("Neon DB employee update failed:", err));
     };
     const deleteEmployee = (id)=>{
         setEmployees((prev)=>prev.filter((e)=>e.id !== id));
-        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$dece07__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["deleteEmployee"])(id).then(()=>refreshData()).catch((err)=>console.error("Neon DB employee delete failed:", err));
+        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$c5fd65__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["deleteEmployee"])(id).then(()=>refreshData()).catch((err)=>console.error("Neon DB employee delete failed:", err));
     };
     // 2. Contract Mutations -> Neon DB
-    const addContract = (data)=>{
+    const addContract = async (data)=>{
         const tempId = `CON-${Date.now().toString().slice(-4)}`;
         const optimisticContract = {
             ...data,
@@ -2908,23 +2916,67 @@ function AppProvider({ children }) {
                 optimisticContract,
                 ...prev
             ]);
-        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$de3efe__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["createContract"])({
-            employeeId: data.employeeId,
-            refCode: data.refCode,
-            startDate: data.startDate,
-            endDate: data.endDate,
-            wage: data.wage,
-            status: data.status,
-            structureId: data.structureId
-        }).then(()=>refreshData()).catch((err)=>console.error("Neon DB contract creation failed:", err));
-        return optimisticContract;
+        try {
+            const res = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$a81eca__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["createContract"])({
+                employeeId: data.employeeId,
+                refCode: data.refCode,
+                startDate: data.startDate,
+                endDate: data.endDate,
+                wage: data.wage,
+                status: data.status,
+                structureId: data.structureId,
+                workingScheduleId: data.workingScheduleId
+            });
+            if (!res.success) {
+                console.error("Neon DB contract creation failed:", res.error);
+                setContracts((prev)=>prev.filter((c)=>c.id !== tempId));
+                return {
+                    success: false,
+                    error: res.error || "Failed to create contract"
+                };
+            }
+            await refreshData();
+            return {
+                success: true,
+                contract: optimisticContract
+            };
+        } catch (err) {
+            console.error("Neon DB contract creation failed:", err);
+            setContracts((prev)=>prev.filter((c)=>c.id !== tempId));
+            return {
+                success: false,
+                error: err.message || "Failed to create contract"
+            };
+        }
     };
-    const updateContract = (id, update)=>{
+    const updateContract = async (id, update)=>{
+        const previous = contracts;
         setContracts((prev)=>prev.map((c)=>c.id === id ? {
                     ...c,
                     ...update
                 } : c));
-        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$c7c068__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["updateContract"])(id, update).then(()=>refreshData()).catch((err)=>console.error("Neon DB contract update failed:", err));
+        try {
+            const res = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$301ced__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["updateContract"])(id, update);
+            if (!res.success) {
+                console.error("Neon DB contract update failed:", res.error);
+                setContracts(previous);
+                return {
+                    success: false,
+                    error: res.error || "Failed to update contract"
+                };
+            }
+            await refreshData();
+            return {
+                success: true
+            };
+        } catch (err) {
+            console.error("Neon DB contract update failed:", err);
+            setContracts(previous);
+            return {
+                success: false,
+                error: err.message || "Failed to update contract"
+            };
+        }
     };
     // 3. Attendance Mutations -> Neon DB
     const addAttendance = (data)=>{
@@ -3046,7 +3098,7 @@ function AppProvider({ children }) {
                 optimisticReq,
                 ...prev
             ]);
-        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$62d5bb__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["createTimeOffRequest"])({
+        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$242a64__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["createTimeOffRequest"])({
             employeeId: data.employeeId,
             typeId: data.typeId,
             startDate: data.startDate,
@@ -3064,7 +3116,7 @@ function AppProvider({ children }) {
                 } : r));
         // For now we map both Rejected and Cancelled to the refuse action, or skip if needed.
         // The spec requires 'refuseTimeOffRequestAction' to handle the DB update.
-        const action = status === "Approved" ? (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$849408__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["approveTimeOffRequest"])(id) : (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$7b91c1__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["refuseTimeOffRequest"])(id);
+        const action = status === "Approved" ? (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$c1dc77__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["approveTimeOffRequest"])(id) : (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$4eeac8__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["refuseTimeOffRequest"])(id);
         action.then(()=>refreshData()).catch((err)=>console.error(`Neon DB time off status update to ${status} failed:`, err));
     };
     const addLeaveAllocation = (data)=>{
@@ -3077,7 +3129,7 @@ function AppProvider({ children }) {
                 optimisticAlloc,
                 ...prev
             ]);
-        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$6f62ef__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["createTimeOffAllocation"])({
+        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$ed0c74__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["createTimeOffAllocation"])({
             employeeId: data.employeeId,
             typeId: data.typeId,
             allocatedDays: data.allocatedDays,
@@ -3086,47 +3138,87 @@ function AppProvider({ children }) {
         return optimisticAlloc;
     };
     // 5. Payrun Batch Mutations -> Neon DB
-    const createPayrunBatch = (params)=>{
-        const tempId = `PR-${Date.now().toString().slice(-4)}`;
-        const optimisticPayrun = {
-            id: tempId,
-            name: params.name,
-            structureId: params.structureId,
-            structureName: "Salary Structure",
-            periodStart: params.periodStart,
-            periodEnd: params.periodEnd,
-            status: "Draft",
-            employeeIds: params.selectedEmployeeIds,
-            totalEmployees: params.selectedEmployeeIds.length,
-            totalNet: 0,
-            warnings: [],
-            createdAt: new Date().toISOString().split("T")[0]
-        };
-        setPayruns((prev)=>[
-                optimisticPayrun,
-                ...prev
-            ]);
-        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$6c6e1d__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["createPayrunBatch"])({
-            name: params.name,
-            periodStart: params.periodStart,
-            periodEnd: params.periodEnd,
-            structureId: params.structureId,
-            selectedEmployeeIds: params.selectedEmployeeIds
-        }).then(()=>refreshData()).catch((err)=>console.error("Neon DB payrun batch creation failed:", err));
-        return optimisticPayrun;
+    const createPayrunBatch = async (params)=>{
+        try {
+            const res = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$6c6e1d__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["createPayrunBatch"])({
+                name: params.name,
+                periodStart: params.periodStart,
+                periodEnd: params.periodEnd,
+                structureId: params.structureId,
+                selectedEmployeeIds: params.selectedEmployeeIds
+            });
+            if (!res.success) {
+                console.error("Neon DB payrun batch creation failed:", res.error);
+                return {
+                    success: false,
+                    error: res.error || "Failed to create payrun batch"
+                };
+            }
+            await refreshData();
+            return {
+                success: true,
+                payrunId: res.payrunId
+            };
+        } catch (err) {
+            console.error("Neon DB payrun batch creation failed:", err);
+            return {
+                success: false,
+                error: err.message || "Failed to create payrun batch"
+            };
+        }
     };
-    const updatePayrunStatus = (id, status)=>{
+    const updatePayrunStatus = async (id, status)=>{
+        const previous = payruns;
         setPayruns((prev)=>prev.map((p)=>p.id === id ? {
                     ...p,
                     status
                 } : p));
-        const action = status === "Validated" ? (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$31b04b__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["validatePayrun"])(id) : status === "Paid" ? (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$32ef63__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["markPayrunPaid"])(id) : Promise.resolve({
-            success: true
-        });
-        action.then(()=>refreshData()).catch((err)=>console.error(`Neon DB payrun status update to ${status} failed:`, err));
+        try {
+            const res = status === "Validated" ? await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$31b04b__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["validatePayrun"])(id) : status === "Paid" ? await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$32ef63__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["markPayrunPaid"])(id) : {
+                success: true
+            };
+            if (!res.success) {
+                console.error(`Neon DB payrun status update to ${status} failed:`, res.error);
+                setPayruns(previous);
+                return {
+                    success: false,
+                    error: res.error || `Failed to update status to ${status}`
+                };
+            }
+            await refreshData();
+            return {
+                success: true
+            };
+        } catch (err) {
+            console.error(`Neon DB payrun status update to ${status} failed:`, err);
+            setPayruns(previous);
+            return {
+                success: false,
+                error: err.message || `Failed to update status to ${status}`
+            };
+        }
     };
-    const recomputePayrun = (id)=>{
-        (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$a5dd7e__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["computePayrunBatch"])(id).then(()=>refreshData()).catch((err)=>console.error("Neon DB payrun recomputation failed:", err));
+    const recomputePayrun = async (id)=>{
+        try {
+            const res = await (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$actions$2f$data$3a$a5dd7e__$5b$app$2d$client$5d$__$28$ecmascript$29$__$3c$text$2f$javascript$3e$__["computePayrunBatch"])(id);
+            if (!res.success) {
+                console.error("Neon DB payrun recomputation failed:", res.error);
+                return {
+                    success: false,
+                    error: res.error || "Failed to recompute payrun"
+                };
+            }
+            await refreshData();
+            return {
+                success: true
+            };
+        } catch (err) {
+            console.error("Neon DB payrun recomputation failed:", err);
+            return {
+                success: false,
+                error: err.message || "Failed to recompute payrun"
+            };
+        }
     };
     // 6. Salary Structure & Rule Mutations -> Neon DB
     const addSalaryStructure = (data)=>{
@@ -3223,7 +3315,7 @@ function AppProvider({ children }) {
         children: children
     }, void 0, false, {
         fileName: "[project]/lib/store.tsx",
-        lineNumber: 593,
+        lineNumber: 644,
         columnNumber: 5
     }, this);
 }
@@ -3317,4 +3409,4 @@ if (typeof globalThis.$RefreshHelpers$ === 'object' && globalThis.$RefreshHelper
 }),
 ]);
 
-//# sourceMappingURL=_1rnu9uo._.js.map
+//# sourceMappingURL=_0dj88qb._.js.map

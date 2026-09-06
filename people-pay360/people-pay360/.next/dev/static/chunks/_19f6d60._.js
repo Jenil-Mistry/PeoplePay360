@@ -57,13 +57,14 @@ function ContractsContent() {
     _s();
     const searchParams = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useSearchParams"])();
     const filterEmployee = searchParams.get("employee");
-    const { contracts, employees, salaryStructures, addContract, updateContract } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAppStore"])();
+    const { contracts, employees, schedules, salaryStructures, addContract, updateContract } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAppStore"])();
     const { toast } = (0, __TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$toast$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useToast"])();
     const [searchQuery, setSearchQuery] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(filterEmployee || "");
     const [statusFilter, setStatusFilter] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("All");
     const [selectedContract, setSelectedContract] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(null);
     const [isModalOpen, setIsModalOpen] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     const [isCreate, setIsCreate] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
+    const [isSaving, setIsSaving] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])(false);
     // Form State
     const [formData, setFormData] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])({});
     const [employeeSearchQuery, setEmployeeSearchQuery] = (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$index$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useState"])("");
@@ -91,21 +92,24 @@ function ContractsContent() {
     };
     const handleCreateNew = ()=>{
         setSelectedContract(null);
+        const nonAdminEmps = employees.filter((emp)=>emp.role !== "ADMIN");
+        const defaultEmp = nonAdminEmps[0] || employees[0];
         setFormData({
-            employeeId: employees[0]?.id || "",
-            employeeName: employees[0]?.name || "",
-            refCode: `CON/2026/00${contracts.length + 10}`,
+            employeeId: defaultEmp?.id || "",
+            employeeName: defaultEmp?.name || "",
+            refCode: `CON/${new Date().getFullYear()}/00${contracts.length + 10}`,
             startDate: new Date().toISOString().split("T")[0],
             wage: 80000,
             structureId: salaryStructures[0]?.id || "",
             status: "Running",
-            notes: "Period running contract for employee."
+            notes: "Period running contract for employee.",
+            workingScheduleId: schedules[0]?.id || 1
         });
         setEmployeeSearchQuery("");
         setIsCreate(true);
         setIsModalOpen(true);
     };
-    const handleSave = ()=>{
+    const handleSave = async ()=>{
         if (!formData.refCode || !formData.wage) {
             toast({
                 title: "Validation Error",
@@ -114,30 +118,59 @@ function ContractsContent() {
             });
             return;
         }
+        if (!formData.employeeId) {
+            toast({
+                title: "Validation Error",
+                description: "Please select an employee.",
+                type: "error"
+            });
+            return;
+        }
         const emp = employees.find((e)=>e.id === formData.employeeId);
         const empName = emp ? emp.name : formData.employeeName || "";
-        if (isCreate) {
-            addContract({
-                ...formData,
-                employeeName: empName
-            });
-            toast({
-                title: "Contract Created",
-                description: `${formData.refCode} initialized.`,
-                type: "success"
-            });
-        } else if (selectedContract) {
-            updateContract(selectedContract.id, {
-                ...formData,
-                employeeName: empName
-            });
-            toast({
-                title: "Contract Updated",
-                description: "Contract terms saved.",
-                type: "success"
-            });
+        setIsSaving(true);
+        try {
+            if (isCreate) {
+                const res = await addContract({
+                    ...formData,
+                    employeeName: empName
+                });
+                if (!res.success) {
+                    toast({
+                        title: "Contract Creation Failed",
+                        description: res.error || "Could not create contract in database.",
+                        type: "error"
+                    });
+                    return;
+                }
+                toast({
+                    title: "Contract Created",
+                    description: `${formData.refCode} initialized and saved to database.`,
+                    type: "success"
+                });
+            } else if (selectedContract) {
+                const res = await updateContract(selectedContract.id, {
+                    ...formData,
+                    employeeName: empName
+                });
+                if (!res.success) {
+                    toast({
+                        title: "Contract Update Failed",
+                        description: res.error || "Could not update contract in database.",
+                        type: "error"
+                    });
+                    return;
+                }
+                toast({
+                    title: "Contract Updated",
+                    description: "Contract terms saved.",
+                    type: "success"
+                });
+            }
+            setIsModalOpen(false);
+        } finally{
+            setIsSaving(false);
         }
-        setIsModalOpen(false);
     };
     return /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
         className: "space-y-6 animate-in fade-in duration-300",
@@ -152,7 +185,7 @@ function ContractsContent() {
                                 children: "Contract Management"
                             }, void 0, false, {
                                 fileName: "[project]/app/contracts/page.tsx",
-                                lineNumber: 116,
+                                lineNumber: 150,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("p", {
@@ -163,20 +196,20 @@ function ContractsContent() {
                                         children: "Running"
                                     }, void 0, false, {
                                         fileName: "[project]/app/contracts/page.tsx",
-                                        lineNumber: 118,
+                                        lineNumber: 152,
                                         columnNumber: 56
                                     }, this),
                                     " contracts directly drive payroll computation."
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/contracts/page.tsx",
-                                lineNumber: 117,
+                                lineNumber: 151,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/contracts/page.tsx",
-                        lineNumber: 115,
+                        lineNumber: 149,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
@@ -188,26 +221,26 @@ function ContractsContent() {
                                 className: "size-4"
                             }, void 0, false, {
                                 fileName: "[project]/app/contracts/page.tsx",
-                                lineNumber: 123,
+                                lineNumber: 157,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("span", {
                                 children: "NEW CONTRACT"
                             }, void 0, false, {
                                 fileName: "[project]/app/contracts/page.tsx",
-                                lineNumber: 124,
+                                lineNumber: 158,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/contracts/page.tsx",
-                        lineNumber: 122,
+                        lineNumber: 156,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/contracts/page.tsx",
-                lineNumber: 114,
+                lineNumber: 148,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -220,7 +253,7 @@ function ContractsContent() {
                                 className: "absolute left-3 top-2.5 size-4 text-muted-foreground"
                             }, void 0, false, {
                                 fileName: "[project]/app/contracts/page.tsx",
-                                lineNumber: 131,
+                                lineNumber: 165,
                                 columnNumber: 11
                             }, this),
                             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -231,13 +264,13 @@ function ContractsContent() {
                                 className: "h-9 w-full rounded-lg border border-border bg-card pl-9 pr-4 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                             }, void 0, false, {
                                 fileName: "[project]/app/contracts/page.tsx",
-                                lineNumber: 132,
+                                lineNumber: 166,
                                 columnNumber: 11
                             }, this)
                         ]
                     }, void 0, true, {
                         fileName: "[project]/app/contracts/page.tsx",
-                        lineNumber: 130,
+                        lineNumber: 164,
                         columnNumber: 9
                     }, this),
                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -253,18 +286,18 @@ function ContractsContent() {
                                 children: st
                             }, st, false, {
                                 fileName: "[project]/app/contracts/page.tsx",
-                                lineNumber: 143,
+                                lineNumber: 177,
                                 columnNumber: 13
                             }, this))
                     }, void 0, false, {
                         fileName: "[project]/app/contracts/page.tsx",
-                        lineNumber: 141,
+                        lineNumber: 175,
                         columnNumber: 9
                     }, this)
                 ]
             }, void 0, true, {
                 fileName: "[project]/app/contracts/page.tsx",
-                lineNumber: 129,
+                lineNumber: 163,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -281,7 +314,7 @@ function ContractsContent() {
                                         children: "Contract Ref"
                                     }, void 0, false, {
                                         fileName: "[project]/app/contracts/page.tsx",
-                                        lineNumber: 163,
+                                        lineNumber: 197,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -289,7 +322,7 @@ function ContractsContent() {
                                         children: "Employee"
                                     }, void 0, false, {
                                         fileName: "[project]/app/contracts/page.tsx",
-                                        lineNumber: 164,
+                                        lineNumber: 198,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -297,7 +330,7 @@ function ContractsContent() {
                                         children: "Start Date"
                                     }, void 0, false, {
                                         fileName: "[project]/app/contracts/page.tsx",
-                                        lineNumber: 165,
+                                        lineNumber: 199,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -305,7 +338,7 @@ function ContractsContent() {
                                         children: "End Date"
                                     }, void 0, false, {
                                         fileName: "[project]/app/contracts/page.tsx",
-                                        lineNumber: 166,
+                                        lineNumber: 200,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -313,7 +346,7 @@ function ContractsContent() {
                                         children: "Wage / Month"
                                     }, void 0, false, {
                                         fileName: "[project]/app/contracts/page.tsx",
-                                        lineNumber: 167,
+                                        lineNumber: 201,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -321,7 +354,7 @@ function ContractsContent() {
                                         children: "Salary Structure"
                                     }, void 0, false, {
                                         fileName: "[project]/app/contracts/page.tsx",
-                                        lineNumber: 168,
+                                        lineNumber: 202,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -329,7 +362,7 @@ function ContractsContent() {
                                         children: "Status"
                                     }, void 0, false, {
                                         fileName: "[project]/app/contracts/page.tsx",
-                                        lineNumber: 169,
+                                        lineNumber: 203,
                                         columnNumber: 15
                                     }, this),
                                     /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("th", {
@@ -337,18 +370,18 @@ function ContractsContent() {
                                         children: "Actions"
                                     }, void 0, false, {
                                         fileName: "[project]/app/contracts/page.tsx",
-                                        lineNumber: 170,
+                                        lineNumber: 204,
                                         columnNumber: 15
                                     }, this)
                                 ]
                             }, void 0, true, {
                                 fileName: "[project]/app/contracts/page.tsx",
-                                lineNumber: 162,
+                                lineNumber: 196,
                                 columnNumber: 13
                             }, this)
                         }, void 0, false, {
                             fileName: "[project]/app/contracts/page.tsx",
-                            lineNumber: 161,
+                            lineNumber: 195,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("tbody", {
@@ -364,7 +397,7 @@ function ContractsContent() {
                                             children: c.refCode
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 182,
+                                            lineNumber: 216,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -372,7 +405,7 @@ function ContractsContent() {
                                             children: c.employeeName
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 185,
+                                            lineNumber: 219,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -380,7 +413,7 @@ function ContractsContent() {
                                             children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatDate"])(c.startDate)
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 186,
+                                            lineNumber: 220,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -388,7 +421,7 @@ function ContractsContent() {
                                             children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatDate"])(c.endDate || "")
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 187,
+                                            lineNumber: 221,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -396,7 +429,7 @@ function ContractsContent() {
                                             children: (0, __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$utils$2e$ts__$5b$app$2d$client$5d$__$28$ecmascript$29$__["formatCurrency"])(c.wage)
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 188,
+                                            lineNumber: 222,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -404,7 +437,7 @@ function ContractsContent() {
                                             children: struct?.name || "Regular Salary"
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 191,
+                                            lineNumber: 225,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -415,12 +448,12 @@ function ContractsContent() {
                                                 children: c.status
                                             }, void 0, false, {
                                                 fileName: "[project]/app/contracts/page.tsx",
-                                                lineNumber: 193,
+                                                lineNumber: 227,
                                                 columnNumber: 21
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 192,
+                                            lineNumber: 226,
                                             columnNumber: 19
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("td", {
@@ -430,35 +463,35 @@ function ContractsContent() {
                                                 children: "View"
                                             }, void 0, false, {
                                                 fileName: "[project]/app/contracts/page.tsx",
-                                                lineNumber: 201,
+                                                lineNumber: 235,
                                                 columnNumber: 21
                                             }, this)
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 200,
+                                            lineNumber: 234,
                                             columnNumber: 19
                                         }, this)
                                     ]
                                 }, c.id, true, {
                                     fileName: "[project]/app/contracts/page.tsx",
-                                    lineNumber: 177,
+                                    lineNumber: 211,
                                     columnNumber: 17
                                 }, this);
                             })
                         }, void 0, false, {
                             fileName: "[project]/app/contracts/page.tsx",
-                            lineNumber: 173,
+                            lineNumber: 207,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/app/contracts/page.tsx",
-                    lineNumber: 160,
+                    lineNumber: 194,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/app/contracts/page.tsx",
-                lineNumber: 159,
+                lineNumber: 193,
                 columnNumber: 7
             }, this),
             /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Dialog"], {
@@ -477,7 +510,7 @@ function ContractsContent() {
                                             children: isCreate ? "New Contract" : `Contract / ${selectedContract?.refCode}`
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 215,
+                                            lineNumber: 249,
                                             columnNumber: 15
                                         }, this),
                                         formData.status && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$badge$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Badge"], {
@@ -485,26 +518,26 @@ function ContractsContent() {
                                             children: formData.status
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 217,
+                                            lineNumber: 251,
                                             columnNumber: 17
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/contracts/page.tsx",
-                                    lineNumber: 214,
+                                    lineNumber: 248,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogDescription"], {
                                     children: formData.status === "Running" ? "This running contract is the source for payroll calculation in the active period." : "Historical employment contract record."
                                 }, void 0, false, {
                                     fileName: "[project]/app/contracts/page.tsx",
-                                    lineNumber: 222,
+                                    lineNumber: 256,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/contracts/page.tsx",
-                            lineNumber: 213,
+                            lineNumber: 247,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -518,7 +551,7 @@ function ContractsContent() {
                                             children: "Employee"
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 231,
+                                            lineNumber: 265,
                                             columnNumber: 15
                                         }, this),
                                         isCreate && /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -528,7 +561,7 @@ function ContractsContent() {
                                                     className: "absolute left-2.5 top-2.5 size-3.5 text-muted-foreground"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 234,
+                                                    lineNumber: 268,
                                                     columnNumber: 19
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("input", {
@@ -539,13 +572,13 @@ function ContractsContent() {
                                                     className: "h-8 w-full rounded-md border border-border bg-background pl-8 pr-3 text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 235,
+                                                    lineNumber: 269,
                                                     columnNumber: 19
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 233,
+                                            lineNumber: 267,
                                             columnNumber: 17
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -568,82 +601,12 @@ function ContractsContent() {
                                                     ]
                                                 }, emp.id, true, {
                                                     fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 257,
+                                                    lineNumber: 291,
                                                     columnNumber: 19
                                                 }, this))
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 244,
-                                            columnNumber: 15
-                                        }, this)
-                                    ]
-                                }, void 0, true, {
-                                    fileName: "[project]/app/contracts/page.tsx",
-                                    lineNumber: 230,
-                                    columnNumber: 13
-                                }, this),
-                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                    className: "grid grid-cols-2 gap-3",
-                                    children: [
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                            className: "space-y-1",
-                                            children: [
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                    className: "font-semibold text-muted-foreground",
-                                                    children: "Contract Reference Code"
-                                                }, void 0, false, {
-                                                    fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 266,
-                                                    columnNumber: 17
-                                                }, this),
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
-                                                    value: formData.refCode || "",
-                                                    onChange: (e)=>setFormData({
-                                                            ...formData,
-                                                            refCode: e.target.value
-                                                        }),
-                                                    placeholder: "CON/2026/0042",
-                                                    className: "font-mono"
-                                                }, void 0, false, {
-                                                    fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 267,
-                                                    columnNumber: 17
-                                                }, this)
-                                            ]
-                                        }, void 0, true, {
-                                            fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 265,
-                                            columnNumber: 15
-                                        }, this),
-                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
-                                            className: "space-y-1",
-                                            children: [
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
-                                                    className: "font-semibold text-muted-foreground",
-                                                    children: "Monthly Wage (₹)"
-                                                }, void 0, false, {
-                                                    fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 276,
-                                                    columnNumber: 17
-                                                }, this),
-                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
-                                                    type: "number",
-                                                    value: formData.wage || "",
-                                                    onChange: (e)=>setFormData({
-                                                            ...formData,
-                                                            wage: Number(e.target.value)
-                                                        }),
-                                                    placeholder: "85000",
-                                                    className: "font-mono font-bold"
-                                                }, void 0, false, {
-                                                    fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 277,
-                                                    columnNumber: 17
-                                                }, this)
-                                            ]
-                                        }, void 0, true, {
-                                            fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 275,
+                                            lineNumber: 278,
                                             columnNumber: 15
                                         }, this)
                                     ]
@@ -660,10 +623,80 @@ function ContractsContent() {
                                             children: [
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
                                                     className: "font-semibold text-muted-foreground",
+                                                    children: "Contract Reference Code"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/app/contracts/page.tsx",
+                                                    lineNumber: 300,
+                                                    columnNumber: 17
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
+                                                    value: formData.refCode || "",
+                                                    onChange: (e)=>setFormData({
+                                                            ...formData,
+                                                            refCode: e.target.value
+                                                        }),
+                                                    placeholder: "CON/2026/0042",
+                                                    className: "font-mono"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/app/contracts/page.tsx",
+                                                    lineNumber: 301,
+                                                    columnNumber: 17
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/app/contracts/page.tsx",
+                                            lineNumber: 299,
+                                            columnNumber: 15
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "space-y-1",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                    className: "font-semibold text-muted-foreground",
+                                                    children: "Monthly Wage (₹)"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/app/contracts/page.tsx",
+                                                    lineNumber: 310,
+                                                    columnNumber: 17
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
+                                                    type: "number",
+                                                    value: formData.wage || "",
+                                                    onChange: (e)=>setFormData({
+                                                            ...formData,
+                                                            wage: Number(e.target.value)
+                                                        }),
+                                                    placeholder: "85000",
+                                                    className: "font-mono font-bold"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/app/contracts/page.tsx",
+                                                    lineNumber: 311,
+                                                    columnNumber: 17
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/app/contracts/page.tsx",
+                                            lineNumber: 309,
+                                            columnNumber: 15
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/app/contracts/page.tsx",
+                                    lineNumber: 298,
+                                    columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "grid grid-cols-2 gap-3",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                            className: "space-y-1",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                                    className: "font-semibold text-muted-foreground",
                                                     children: "Start Date"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 289,
+                                                    lineNumber: 323,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -675,13 +708,13 @@ function ContractsContent() {
                                                         })
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 290,
+                                                    lineNumber: 324,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 288,
+                                            lineNumber: 322,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -692,7 +725,7 @@ function ContractsContent() {
                                                     children: "End Date (Leave blank if ongoing)"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 298,
+                                                    lineNumber: 332,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$input$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Input"], {
@@ -704,19 +737,19 @@ function ContractsContent() {
                                                         })
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 299,
+                                                    lineNumber: 333,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 297,
+                                            lineNumber: 331,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/contracts/page.tsx",
-                                    lineNumber: 287,
+                                    lineNumber: 321,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -730,7 +763,7 @@ function ContractsContent() {
                                                     children: "Salary Structure"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 309,
+                                                    lineNumber: 343,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
@@ -745,18 +778,18 @@ function ContractsContent() {
                                                             children: s.name
                                                         }, s.id, false, {
                                                             fileName: "[project]/app/contracts/page.tsx",
-                                                            lineNumber: 316,
+                                                            lineNumber: 350,
                                                             columnNumber: 21
                                                         }, this))
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 310,
+                                                    lineNumber: 344,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 308,
+                                            lineNumber: 342,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -764,60 +797,102 @@ function ContractsContent() {
                                             children: [
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
                                                     className: "font-semibold text-muted-foreground",
-                                                    children: "Contract Status"
+                                                    children: "Working Schedule"
                                                 }, void 0, false, {
                                                     fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 324,
+                                                    lineNumber: 358,
                                                     columnNumber: 17
                                                 }, this),
                                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
-                                                    value: formData.status,
+                                                    value: formData.workingScheduleId || (schedules[0]?.id ?? 1),
                                                     onChange: (e)=>setFormData({
                                                             ...formData,
-                                                            status: e.target.value
+                                                            workingScheduleId: Number(e.target.value)
                                                         }),
                                                     className: "h-9 w-full rounded-lg border border-border bg-background px-3 py-1 text-sm",
-                                                    children: [
-                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
-                                                            value: "Running",
-                                                            children: "Running (Active Payroll Source)"
-                                                        }, void 0, false, {
+                                                    children: schedules.map((sch)=>/*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                                            value: sch.id,
+                                                            children: [
+                                                                sch.name,
+                                                                " (",
+                                                                sch.totalWeeklyHours,
+                                                                "h)"
+                                                            ]
+                                                        }, sch.id, true, {
                                                             fileName: "[project]/app/contracts/page.tsx",
-                                                            lineNumber: 330,
-                                                            columnNumber: 19
-                                                        }, this),
-                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
-                                                            value: "Expired",
-                                                            children: "Expired"
-                                                        }, void 0, false, {
-                                                            fileName: "[project]/app/contracts/page.tsx",
-                                                            lineNumber: 331,
-                                                            columnNumber: 19
-                                                        }, this),
-                                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
-                                                            value: "Draft",
-                                                            children: "Draft"
-                                                        }, void 0, false, {
-                                                            fileName: "[project]/app/contracts/page.tsx",
-                                                            lineNumber: 332,
-                                                            columnNumber: 19
-                                                        }, this)
-                                                    ]
-                                                }, void 0, true, {
+                                                            lineNumber: 365,
+                                                            columnNumber: 21
+                                                        }, this))
+                                                }, void 0, false, {
                                                     fileName: "[project]/app/contracts/page.tsx",
-                                                    lineNumber: 325,
+                                                    lineNumber: 359,
                                                     columnNumber: 17
                                                 }, this)
                                             ]
                                         }, void 0, true, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 323,
+                                            lineNumber: 357,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/contracts/page.tsx",
-                                    lineNumber: 307,
+                                    lineNumber: 341,
+                                    columnNumber: 13
+                                }, this),
+                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
+                                    className: "space-y-1",
+                                    children: [
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("label", {
+                                            className: "font-semibold text-muted-foreground",
+                                            children: "Contract Status"
+                                        }, void 0, false, {
+                                            fileName: "[project]/app/contracts/page.tsx",
+                                            lineNumber: 374,
+                                            columnNumber: 15
+                                        }, this),
+                                        /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("select", {
+                                            value: formData.status,
+                                            onChange: (e)=>setFormData({
+                                                    ...formData,
+                                                    status: e.target.value
+                                                }),
+                                            className: "h-9 w-full rounded-lg border border-border bg-background px-3 py-1 text-sm",
+                                            children: [
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                                    value: "Running",
+                                                    children: "Running (Active Payroll Source)"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/app/contracts/page.tsx",
+                                                    lineNumber: 380,
+                                                    columnNumber: 17
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                                    value: "Expired",
+                                                    children: "Expired"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/app/contracts/page.tsx",
+                                                    lineNumber: 381,
+                                                    columnNumber: 17
+                                                }, this),
+                                                /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("option", {
+                                                    value: "Draft",
+                                                    children: "Draft"
+                                                }, void 0, false, {
+                                                    fileName: "[project]/app/contracts/page.tsx",
+                                                    lineNumber: 382,
+                                                    columnNumber: 17
+                                                }, this)
+                                            ]
+                                        }, void 0, true, {
+                                            fileName: "[project]/app/contracts/page.tsx",
+                                            lineNumber: 375,
+                                            columnNumber: 15
+                                        }, this)
+                                    ]
+                                }, void 0, true, {
+                                    fileName: "[project]/app/contracts/page.tsx",
+                                    lineNumber: 373,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("div", {
@@ -828,7 +903,7 @@ function ContractsContent() {
                                             children: "Contract Notes & Provisions"
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 338,
+                                            lineNumber: 387,
                                             columnNumber: 15
                                         }, this),
                                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])("textarea", {
@@ -842,19 +917,19 @@ function ContractsContent() {
                                             placeholder: "Employment terms, department, standard allowances..."
                                         }, void 0, false, {
                                             fileName: "[project]/app/contracts/page.tsx",
-                                            lineNumber: 339,
+                                            lineNumber: 388,
                                             columnNumber: 15
                                         }, this)
                                     ]
                                 }, void 0, true, {
                                     fileName: "[project]/app/contracts/page.tsx",
-                                    lineNumber: 337,
+                                    lineNumber: 386,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/contracts/page.tsx",
-                            lineNumber: 229,
+                            lineNumber: 263,
                             columnNumber: 11
                         }, this),
                         /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$dialog$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["DialogFooter"], {
@@ -863,47 +938,49 @@ function ContractsContent() {
                                     variant: "outline",
                                     size: "sm",
                                     onClick: ()=>setIsModalOpen(false),
+                                    disabled: isSaving,
                                     children: "Discard"
                                 }, void 0, false, {
                                     fileName: "[project]/app/contracts/page.tsx",
-                                    lineNumber: 350,
+                                    lineNumber: 399,
                                     columnNumber: 13
                                 }, this),
                                 /*#__PURE__*/ (0, __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$dist$2f$compiled$2f$react$2f$jsx$2d$dev$2d$runtime$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["jsxDEV"])(__TURBOPACK__imported__module__$5b$project$5d2f$components$2f$ui$2f$button$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["Button"], {
                                     size: "sm",
                                     onClick: handleSave,
+                                    disabled: isSaving,
                                     className: "bg-primary text-primary-foreground",
-                                    children: "Save Contract"
+                                    children: isSaving ? "Saving..." : "Save Contract"
                                 }, void 0, false, {
                                     fileName: "[project]/app/contracts/page.tsx",
-                                    lineNumber: 353,
+                                    lineNumber: 402,
                                     columnNumber: 13
                                 }, this)
                             ]
                         }, void 0, true, {
                             fileName: "[project]/app/contracts/page.tsx",
-                            lineNumber: 349,
+                            lineNumber: 398,
                             columnNumber: 11
                         }, this)
                     ]
                 }, void 0, true, {
                     fileName: "[project]/app/contracts/page.tsx",
-                    lineNumber: 212,
+                    lineNumber: 246,
                     columnNumber: 9
                 }, this)
             }, void 0, false, {
                 fileName: "[project]/app/contracts/page.tsx",
-                lineNumber: 211,
+                lineNumber: 245,
                 columnNumber: 7
             }, this)
         ]
     }, void 0, true, {
         fileName: "[project]/app/contracts/page.tsx",
-        lineNumber: 112,
+        lineNumber: 146,
         columnNumber: 5
     }, this);
 }
-_s(ContractsContent, "YAByeGIkGQJ4XLiOsTVOdj+01kU=", false, function() {
+_s(ContractsContent, "Gafpn9N03zKzWQu2F5SgfbQgXP4=", false, function() {
     return [
         __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$next$2f$navigation$2e$js__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useSearchParams"],
         __TURBOPACK__imported__module__$5b$project$5d2f$lib$2f$store$2e$tsx__$5b$app$2d$client$5d$__$28$ecmascript$29$__["useAppStore"],

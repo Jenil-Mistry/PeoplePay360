@@ -2,7 +2,7 @@
 
 import { db } from "@/lib/db";
 import { attendance, employees, workingSchedules, workingScheduleLines } from "@/lib/db/schema";
-import { eq, and, sql, desc, gte, lte } from "drizzle-orm";
+import { eq, and, sql, desc, gte, lte, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { canAccessModule } from "@/lib/rbac";
 import { getAuthenticatedUser, requireReadAccess } from "./auth-helpers";
@@ -54,6 +54,32 @@ export async function getAttendanceRecords(filters?: {
     }
     if (filters?.endDate) {
       conditions.push(lte(attendance.date, filters.endDate));
+    }
+
+    // --- AUTO-CHECKOUT SWEEP ---
+    try {
+      const staleRecords = await db
+        .select({ id: attendance.id, checkIn: attendance.checkIn })
+        .from(attendance)
+        .where(isNull(attendance.checkOut));
+        
+      const nowTs = Date.now();
+      for (const record of staleRecords) {
+        if (record.checkIn) {
+          const inDate = record.checkIn instanceof Date ? record.checkIn : new Date(record.checkIn);
+          if (nowTs - inDate.getTime() > 12 * 60 * 60 * 1000) {
+            const outDate = new Date(inDate.getTime() + 12 * 60 * 60 * 1000);
+            await db.update(attendance).set({
+              checkOut: outDate,
+              workedHours: "12.00",
+              isOvertime: true,
+              notes: "Auto-checked out after 12 hours maximum shift.",
+            }).where(eq(attendance.id, record.id));
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Auto-checkout sweep failed:", e);
     }
 
     const query = db
@@ -469,7 +495,7 @@ export async function recordCheckIn(data: {
     `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
 
   let scheduledStartMinutes = 9 * 60; // fallback only if no schedule exists
-  const rawId = typeof data.employeeId === "number" ? data.employeeId : parseInt(data.employeeId.toString().replace(/\\D/g, ""), 10);
+  const rawId = typeof data.employeeId === "number" ? data.employeeId : parseInt(data.employeeId.toString().replace(/\D/g, ""), 10);
   
   const [empRecord] = await db.select({ workingScheduleId: employees.workingScheduleId }).from(employees).where(eq(employees.id, rawId));
   
@@ -577,6 +603,7 @@ export async function recordCheckOut(data: {
 
   let workedHours = "0.00";
   let isOvertime = false;
+  let finalOutDate: Date | null = null;
   if (existing?.checkIn) {
     let inH = 0,
       inM = 0;
@@ -593,6 +620,13 @@ export async function recordCheckOut(data: {
     const [outH, outM] = outTimeStr.split(":").map(Number);
     let diffMinutes = outH * 60 + outM - (inH * 60 + inM);
     if (diffMinutes < 0) diffMinutes += 24 * 60; // Overnight shift
+    
+    // Cap shift at 12 hours (720 minutes)
+    let capped = false;
+    if (diffMinutes > 720) {
+      diffMinutes = 720;
+      capped = true;
+    }
     
     // Fetch schedule for break deduction and overtime baseline
     let breakHours = 0;
@@ -620,9 +654,18 @@ export async function recordCheckOut(data: {
     workedHours = hours.toFixed(2);
     // Overtime is any time exceeding the expected work hours for that specific schedule day
     if (hours > expectedWorkedHours) isOvertime = true;
+
+    if (capped) {
+      if (existing.checkIn instanceof Date) {
+        finalOutDate = new Date(existing.checkIn.getTime() + 12 * 60 * 60 * 1000);
+      } else {
+        const baseDate = new Date(`${dateStr}T${String(inH).padStart(2, "0")}:${String(inM).padStart(2, "0")}:00`);
+        finalOutDate = new Date(baseDate.getTime() + 12 * 60 * 60 * 1000);
+      }
+    }
   }
 
-  const outDate = new Date(`${dateStr}T${outTimeStr}:00`);
+  const outDate = finalOutDate || new Date(`${dateStr}T${outTimeStr}:00`);
 
   const [updated] = await db
     .update(attendance)
